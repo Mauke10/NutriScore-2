@@ -53,9 +53,10 @@ export async function GET(request) {
 
     dashboardUrl.searchParams.set("strava_connected", personId);
   } catch (e) {
-    console.error("Strava token exchange failed:", e);
+    console.error("Strava token exchange failed:", e, e && e.cause);
     dashboardUrl.searchParams.set("strava_error", "exchange_failed");
-    dashboardUrl.searchParams.set("strava_error_detail", String(e.message || e).slice(0, 200));
+    const causeDetail = e && e.cause ? String(e.cause.message || e.cause.code || e.cause) : "";
+    dashboardUrl.searchParams.set("strava_error_detail", (causeDetail || String(e.message || e)).slice(0, 200));
   }
 
   const res = NextResponse.redirect(dashboardUrl);
