@@ -1,4 +1,4 @@
-import "./globals.css";
+import VersionWatcher from "./VersionWatcher";
 
 export const metadata = {
   title: "Nutriscore",
@@ -23,7 +23,10 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Public+Sans:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <VersionWatcher />
+        {children}
+      </body>
     </html>
   );
 }
