@@ -41,7 +41,8 @@ export async function GET(request) {
         caloriesPer100g: row.calories_per_100g,
         proteinPer100g: row.protein_per_100g,
         carbsPer100g: row.carbs_per_100g,
-        fatPer100g: row.fat_per_100g
+        fatPer100g: row.fat_per_100g,
+        fiberPer100g: row.fiber_per_100g
       });
     });
   }
@@ -55,11 +56,12 @@ export async function GET(request) {
 // from something the other saved.
 //
 // Two ways to send macros: pass ingredients (an array of {name, grams,
-// caloriesPer100g, proteinPer100g, carbsPer100g, fatPer100g}) and the totals
-// are computed from them and cached on the recipe row; or, for a recipe
-// that's just one fixed total (e.g. the quick "save this as a recipe" tick
-// when logging a snack, which doesn't know ingredients), omit ingredients
-// and pass calories/proteinG/carbsG/fatG directly, same as before.
+// caloriesPer100g, proteinPer100g, carbsPer100g, fatPer100g, fiberPer100g})
+// and the totals are computed from them and cached on the recipe row; or,
+// for a recipe that's just one fixed total (e.g. the quick "save this as a
+// recipe" tick when logging a snack, which doesn't know ingredients), omit
+// ingredients and pass calories/proteinG/carbsG/fatG/fiberG directly, same
+// as before.
 export async function POST(request) {
   const me = currentPerson();
   if (!me) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -85,7 +87,8 @@ export async function POST(request) {
           calories_per_100g: numOrNull(ing.caloriesPer100g),
           protein_per_100g: numOrNull(ing.proteinPer100g),
           carbs_per_100g: numOrNull(ing.carbsPer100g),
-          fat_per_100g: numOrNull(ing.fatPer100g)
+          fat_per_100g: numOrNull(ing.fatPer100g),
+          fiber_per_100g: numOrNull(ing.fiberPer100g)
         }))
         .filter((ing) => ing.name)
     : null;
@@ -104,18 +107,21 @@ export async function POST(request) {
         caloriesPer100g: ing.calories_per_100g,
         proteinPer100g: ing.protein_per_100g,
         carbsPer100g: ing.carbs_per_100g,
-        fatPer100g: ing.fat_per_100g
+        fatPer100g: ing.fat_per_100g,
+        fiberPer100g: ing.fiber_per_100g
       }))
     );
     row.calories = round1(totals.calories);
     row.protein_g = round1(totals.protein);
     row.carbs_g = round1(totals.carbs);
     row.fat_g = round1(totals.fat);
+    row.fiber_g = round1(totals.fiber);
   } else {
     row.calories = numOrNull(body.calories);
     row.protein_g = numOrNull(body.proteinG);
     row.carbs_g = numOrNull(body.carbsG);
     row.fat_g = numOrNull(body.fatG);
+    row.fiber_g = numOrNull(body.fiberG);
   }
 
   let error;

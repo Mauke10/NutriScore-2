@@ -14,7 +14,8 @@ export function scaledIngredient(ing) {
     calories: numOrZero(ing.caloriesPer100g) * factor,
     protein: numOrZero(ing.proteinPer100g) * factor,
     carbs: numOrZero(ing.carbsPer100g) * factor,
-    fat: numOrZero(ing.fatPer100g) * factor
+    fat: numOrZero(ing.fatPer100g) * factor,
+    fiber: numOrZero(ing.fiberPer100g) * factor
   };
 }
 
@@ -26,10 +27,11 @@ export function sumIngredients(ingredients) {
         calories: totals.calories + s.calories,
         protein: totals.protein + s.protein,
         carbs: totals.carbs + s.carbs,
-        fat: totals.fat + s.fat
+        fat: totals.fat + s.fat,
+        fiber: totals.fiber + s.fiber
       };
     },
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
   );
 }
 

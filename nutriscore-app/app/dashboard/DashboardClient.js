@@ -12,6 +12,7 @@ import TrainingSection from "./TrainingSection";
 import WeeklySection from "./WeeklySection";
 import BloodworkSection from "./BloodworkSection";
 import TopMenu from "./TopMenu";
+import GoalsPanel from "./GoalsPanel";
 import SettingsPanel from "./SettingsPanel";
 import RecipesPanel from "./RecipesPanel";
 import ColourPanel from "./ColourPanel";
@@ -28,7 +29,7 @@ export default function DashboardClient({ me }) {
   const martin = usePersonData("martin");
   const laura = usePersonData("laura");
   const [activeTab, setActiveTab] = useState("today");
-  const [openPanel, setOpenPanel] = useState(null); // null | 'settings' | 'recipes' | 'colour'
+  const [openPanel, setOpenPanel] = useState(null); // null | 'goals' | 'settings' | 'recipes' | 'colour'
   const cameraTriggerRef = useRef(null);
   const [theme, setTheme] = useState({ mode: null, night: "dark" }); // mode: null (match device) | 'light' | 'dark' | 'green'
 
@@ -81,6 +82,7 @@ export default function DashboardClient({ me }) {
       <div className="top-bar">
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
           <TopMenu
+            onOpenGoals={() => setOpenPanel("goals")}
             onOpenSettings={() => setOpenPanel("settings")}
             onOpenRecipes={() => setOpenPanel("recipes")}
             onOpenColour={() => setOpenPanel("colour")}
@@ -98,11 +100,21 @@ export default function DashboardClient({ me }) {
         </div>
       </div>
 
+      {openPanel === "goals" && (
+        <GoalsPanel
+          personId={me}
+          calorieTarget={myData.calorieTarget}
+          proteinTarget={myData.proteinTarget}
+          swimGoalKm={myData.swimGoalKm}
+          bikeGoalKm={myData.bikeGoalKm}
+          runGoalKm={myData.runGoalKm}
+          refreshTarget={myData.refreshTarget}
+          onClose={() => setOpenPanel(null)}
+        />
+      )}
       {openPanel === "settings" && (
         <SettingsPanel
           personId={me}
-          calorieTarget={myData.calorieTarget}
-          refreshTarget={myData.refreshTarget}
           stravaStatus={myData.stravaStatus}
           refreshStravaStatus={myData.refreshStravaStatus}
           refreshTraining={myData.refreshTraining}
@@ -165,6 +177,7 @@ export default function DashboardClient({ me }) {
             personId={me}
             isMe
             calorieTarget={myData.calorieTarget}
+            proteinTarget={myData.proteinTarget}
             snacks={myData.snacks}
             refreshSnacks={myData.refreshSnacks}
             refreshTarget={myData.refreshTarget}
@@ -177,6 +190,11 @@ export default function DashboardClient({ me }) {
             isMe
             training={myData.training}
             refreshTraining={myData.refreshTraining}
+            sessions={myData.sessions}
+            refreshSessions={myData.refreshSessions}
+            swimGoalKm={myData.swimGoalKm}
+            bikeGoalKm={myData.bikeGoalKm}
+            runGoalKm={myData.runGoalKm}
             stravaStatus={myData.stravaStatus}
             refreshStravaStatus={myData.refreshStravaStatus}
           />

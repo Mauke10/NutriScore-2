@@ -82,6 +82,7 @@ export async function POST(request) {
   const proteinG = numOrNull(formData.get("proteinG"));
   const carbsG = numOrNull(formData.get("carbsG"));
   const fatG = numOrNull(formData.get("fatG"));
+  const fiberG = numOrNull(formData.get("fiberG"));
 
   const row = {
     person_id: me,
@@ -91,6 +92,7 @@ export async function POST(request) {
     protein_g: proteinG,
     carbs_g: carbsG,
     fat_g: fatG,
+    fiber_g: fiberG,
     notes: (formData.get("notes") || "").toString(),
     meal_type: mealType,
     recipe_id: recipeId,
@@ -109,6 +111,7 @@ export async function POST(request) {
       protein_g: proteinG,
       carbs_g: carbsG,
       fat_g: fatG,
+      fiber_g: fiberG,
       meal_type: mealType,
       updated_at: new Date().toISOString()
     };

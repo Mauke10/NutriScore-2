@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { currentMonthStr } from "./utils";
 
 // Pulls together everything the dashboard shows for one person (Martin or
 // Laura), and exposes small refresh functions so a form submit only
@@ -10,7 +11,12 @@ export function usePersonData(personId) {
   const [bloodwork, setBloodwork] = useState([]);
   const [snacks, setSnacks] = useState([]);
   const [training, setTraining] = useState([]);
+  const [sessions, setSessions] = useState([]); // manually-logged workouts, this month
   const [calorieTarget, setCalorieTarget] = useState(null);
+  const [proteinTarget, setProteinTarget] = useState(null);
+  const [swimGoalKm, setSwimGoalKm] = useState(null);
+  const [bikeGoalKm, setBikeGoalKm] = useState(null);
+  const [runGoalKm, setRunGoalKm] = useState(null);
   const [accentColor, setAccentColor] = useState(null);
   const [stravaStatus, setStravaStatus] = useState({ connected: false });
   const [loading, setLoading] = useState(true);
@@ -39,10 +45,20 @@ export function usePersonData(personId) {
     setTraining(data.entries || []);
   }, [personId]);
 
+  const refreshSessions = useCallback(async () => {
+    const res = await fetch("/api/training-sessions?person=" + personId + "&month=" + currentMonthStr());
+    const data = await res.json();
+    setSessions(data.entries || []);
+  }, [personId]);
+
   const refreshTarget = useCallback(async () => {
     const res = await fetch("/api/targets?person=" + personId);
     const data = await res.json();
     setCalorieTarget(data.calorieTarget ?? null);
+    setProteinTarget(data.proteinTarget ?? null);
+    setSwimGoalKm(data.swimGoalKm ?? null);
+    setBikeGoalKm(data.bikeGoalKm ?? null);
+    setRunGoalKm(data.runGoalKm ?? null);
   }, [personId]);
 
   const refreshAccentColor = useCallback(async () => {
@@ -65,6 +81,7 @@ export function usePersonData(personId) {
       refreshBloodwork(),
       refreshSnacks(),
       refreshTraining(),
+      refreshSessions(),
       refreshTarget(),
       refreshAccentColor(),
       refreshStravaStatus()
@@ -74,7 +91,17 @@ export function usePersonData(personId) {
     return () => {
       cancelled = true;
     };
-  }, [personId, refreshWeekly, refreshBloodwork, refreshSnacks, refreshTraining, refreshTarget, refreshAccentColor, refreshStravaStatus]);
+  }, [
+    personId,
+    refreshWeekly,
+    refreshBloodwork,
+    refreshSnacks,
+    refreshTraining,
+    refreshSessions,
+    refreshTarget,
+    refreshAccentColor,
+    refreshStravaStatus
+  ]);
 
   return {
     loading,
@@ -82,13 +109,19 @@ export function usePersonData(personId) {
     bloodwork,
     snacks,
     training,
+    sessions,
     calorieTarget,
+    proteinTarget,
+    swimGoalKm,
+    bikeGoalKm,
+    runGoalKm,
     accentColor,
     stravaStatus,
     refreshWeekly,
     refreshBloodwork,
     refreshSnacks,
     refreshTraining,
+    refreshSessions,
     refreshTarget,
     refreshAccentColor,
     refreshStravaStatus

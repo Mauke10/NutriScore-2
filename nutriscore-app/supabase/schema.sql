@@ -61,6 +61,7 @@ create table if not exists recipes (
   protein_g numeric,
   carbs_g numeric,
   fat_g numeric,
+  fiber_g numeric,
   meal_type text not null default 'meal', -- 'meal' | 'snack' — just the default tag applied when logged from this recipe
   portion_note text,
   created_by text references people(id),
@@ -82,6 +83,7 @@ create table if not exists recipe_ingredients (
   protein_per_100g numeric,
   carbs_per_100g numeric,
   fat_per_100g numeric,
+  fiber_per_100g numeric,
   sort_order int not null default 0
 );
 create index if not exists recipe_ingredients_recipe_idx on recipe_ingredients (recipe_id);
@@ -99,6 +101,7 @@ create table if not exists food_logs (
   protein_g numeric,
   carbs_g numeric,
   fat_g numeric,
+  fiber_g numeric,
   notes text,
   meal_type text not null default 'snack', -- 'meal' | 'snack'
   recipe_id uuid references recipes(id),
@@ -113,8 +116,27 @@ create index if not exists food_logs_person_date_idx on food_logs (person_id, lo
 create table if not exists settings (
   person_id text primary key references people(id),
   calorie_target numeric,
+  protein_target numeric,
+  swim_goal_km numeric,
+  bike_goal_km numeric,
+  run_goal_km numeric,
   accent_color text
 );
+
+-- Manually-logged workouts, kept separate from the Strava-synced
+-- training_volume table (see below) so a re-sync never overwrites or
+-- double-counts something logged by hand.
+create table if not exists training_sessions (
+  id uuid primary key default gen_random_uuid(),
+  person_id text not null references people(id),
+  session_date date not null,
+  activity_type text not null default 'other',
+  distance_km numeric,
+  duration_min numeric,
+  notes text,
+  created_at timestamptz not null default now()
+);
+create index if not exists training_sessions_person_date_idx on training_sessions (person_id, session_date);
 
 -- Shared "morning notes" whiteboard on the Compete tab — one message per
 -- person per day, clears itself out the next morning.

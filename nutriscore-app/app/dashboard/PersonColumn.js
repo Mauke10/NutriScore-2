@@ -11,12 +11,18 @@ export default function PersonColumn({ personId, displayName, seriesVar, isMe, d
     bloodwork,
     snacks,
     training,
+    sessions,
     calorieTarget,
+    proteinTarget,
+    swimGoalKm,
+    bikeGoalKm,
+    runGoalKm,
     stravaStatus,
     refreshWeekly,
     refreshBloodwork,
     refreshSnacks,
     refreshTraining,
+    refreshSessions,
     refreshTarget,
     refreshStravaStatus
   } = data;
@@ -31,13 +37,26 @@ export default function PersonColumn({ personId, displayName, seriesVar, isMe, d
         {isMe && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>(you)</span>}
       </div>
 
-      <SnackSection personId={personId} isMe={isMe} snacks={snacks} refreshSnacks={refreshSnacks} calorieTarget={calorieTarget} refreshTarget={refreshTarget} />
+      <SnackSection
+        personId={personId}
+        isMe={isMe}
+        snacks={snacks}
+        refreshSnacks={refreshSnacks}
+        calorieTarget={calorieTarget}
+        proteinTarget={proteinTarget}
+        refreshTarget={refreshTarget}
+      />
       <WeeklySection personId={personId} isMe={isMe} weekly={weekly} refreshWeekly={refreshWeekly} />
       <TrainingSection
         personId={personId}
         isMe={isMe}
         training={training}
         refreshTraining={refreshTraining}
+        sessions={sessions}
+        refreshSessions={refreshSessions}
+        swimGoalKm={swimGoalKm}
+        bikeGoalKm={bikeGoalKm}
+        runGoalKm={runGoalKm}
         stravaStatus={stravaStatus}
         refreshStravaStatus={refreshStravaStatus}
       />

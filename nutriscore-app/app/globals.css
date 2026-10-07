@@ -125,9 +125,18 @@ form .field.wide { grid-column: 1 / -1; }
 form label { font-size: 11px; color: var(--text-secondary); font-weight: 600; }
 form input, form textarea {
   font: inherit; background: var(--page); color: var(--text-primary);
-  border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; width: 100%;
+  border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; width: 100%; min-width: 0;
 }
 form textarea { resize: vertical; min-height: 42px; }
+/* Native date/month pickers (iOS Safari especially) render their text at a
+   fixed intrinsic width that can exceed a narrow grid column and spill into
+   the field next door instead of shrinking — a 3-up row like "Week of /
+   Weight / Waist" or "Month / Weight moved" is exactly where that shows up
+   on a phone. Dropping to 2 columns below 500px gives each field enough
+   room that the picker fits inside its own box. */
+@media (max-width: 500px) {
+  form { grid-template-columns: repeat(2, 1fr); }
+}
 .form-actions { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; margin-top: 2px; }
 
 button {
@@ -240,7 +249,7 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .whoami { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-secondary); }
 
 /* Meal/snack toggle */
-.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; padding: 2px; gap: 2px; }
+.segmented { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 9px; padding: 2px; gap: 2px; }
 .seg-btn { background: transparent; color: var(--text-secondary); font-size: 12.5px; font-weight: 600; padding: 6px 14px; border-radius: 7px; }
 .seg-btn.selected { background: var(--series-martin); color: #fff; }
 [data-person="laura"] .seg-btn.selected { background: var(--series-laura); }
@@ -269,6 +278,15 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 /* Scaled bar stat (training volume) */
 .bar-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 16px; }
 @media (max-width: 500px) { .bar-grid { grid-template-columns: 1fr; } }
+.bar-stat-wrap { display: flex; flex-direction: column; gap: 6px; }
+
+/* Monthly swim/bike/run goal progress (Goals panel sets the target; actual
+   combines Strava-synced distance with manually logged sessions). */
+.goal-progress { display: flex; flex-direction: column; gap: 3px; }
+.goal-progress-track { height: 5px; border-radius: 3px; background: var(--gridline); overflow: hidden; }
+.goal-progress-fill { height: 100%; border-radius: 3px; transition: width 0.2s ease; }
+.goal-progress-label { font-size: 10.5px; color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+
 @media (max-width: 500px) {
   .ingredient-row { flex-wrap: wrap; }
   .ingredient-nums { grid-template-columns: repeat(3, 1fr); flex-basis: 100%; }
@@ -359,7 +377,7 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
   border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px;
 }
 .ingredient-name { flex: 1 1 120px; min-width: 0; font-weight: 600; }
-.ingredient-nums { display: grid; grid-template-columns: repeat(5, minmax(48px, 1fr)); gap: 6px; flex: 2 1 260px; }
+.ingredient-nums { display: grid; grid-template-columns: repeat(6, minmax(48px, 1fr)); gap: 6px; flex: 2 1 300px; }
 .ingredient-nums label { display: flex; flex-direction: column; gap: 2px; }
 .ingredient-nums span { font-size: 9.5px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
 .ingredient-nums input { padding: 5px 6px; font-size: 12.5px; }

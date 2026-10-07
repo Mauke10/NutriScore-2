@@ -7,7 +7,7 @@ const PROMPT =
   "Identify the food(s) shown and estimate nutrition for the portion pictured. " +
   "Reply with ONLY a JSON object, no other text: " +
   '{"description": string, "calories": number, "proteinG": number, "carbsG": number, ' +
-  '"fatG": number, "confidence": "low"|"medium"|"high", "assumptions": string (one short sentence)}.';
+  '"fatG": number, "fiberG": number, "confidence": "low"|"medium"|"high", "assumptions": string (one short sentence)}.';
 
 function extractJson(text) {
   try {

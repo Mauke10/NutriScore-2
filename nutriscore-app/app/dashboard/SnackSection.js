@@ -17,6 +17,7 @@ const emptyForm = {
   proteinG: "",
   carbsG: "",
   fatG: "",
+  fiberG: "",
   notes: "",
   logDate: todayStr(),
   mealType: "snack",
@@ -25,7 +26,7 @@ const emptyForm = {
   saveAsRecipe: false
 };
 
-export default function SnackSection({ personId, isMe, snacks, refreshSnacks, calorieTarget, registerCameraTrigger }) {
+export default function SnackSection({ personId, isMe, snacks, refreshSnacks, calorieTarget, proteinTarget, registerCameraTrigger }) {
   const [form, setForm] = useState(emptyForm);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -45,6 +46,7 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
   const proteinTotal = todaysEntries.reduce((sum, s) => sum + (Number(s.protein_g) || 0), 0);
   const carbsTotal = todaysEntries.reduce((sum, s) => sum + (Number(s.carbs_g) || 0), 0);
   const fatTotal = todaysEntries.reduce((sum, s) => sum + (Number(s.fat_g) || 0), 0);
+  const fiberTotal = todaysEntries.reduce((sum, s) => sum + (Number(s.fiber_g) || 0), 0);
 
   const ringPct = calorieTarget ? Math.max(0, Math.min(1, combinedTotal / calorieTarget)) : 0;
   const ringOffset = RING_CIRC * (1 - ringPct);
@@ -76,7 +78,8 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
       caloriesPer100g: ing.caloriesPer100g,
       proteinPer100g: ing.proteinPer100g,
       carbsPer100g: ing.carbsPer100g,
-      fatPer100g: ing.fatPer100g
+      fatPer100g: ing.fatPer100g,
+      fiberPer100g: ing.fiberPer100g
     }));
     setForm((f) => {
       const next = {
@@ -86,6 +89,7 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
         proteinG: recipe.protein_g != null ? String(Math.round(recipe.protein_g)) : f.proteinG,
         carbsG: recipe.carbs_g != null ? String(Math.round(recipe.carbs_g)) : f.carbsG,
         fatG: recipe.fat_g != null ? String(Math.round(recipe.fat_g)) : f.fatG,
+        fiberG: recipe.fiber_g != null ? String(Math.round(recipe.fiber_g)) : f.fiberG,
         mealType: recipe.meal_type === "snack" ? "snack" : "meal",
         recipeId: recipe.id,
         ingredients,
@@ -105,7 +109,8 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
       calories: String(Math.round(totals.calories)),
       proteinG: String(Math.round(totals.protein)),
       carbsG: String(Math.round(totals.carbs)),
-      fatG: String(Math.round(totals.fat))
+      fatG: String(Math.round(totals.fat)),
+      fiberG: String(Math.round(totals.fiber))
     };
   }
 
@@ -134,6 +139,7 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
         proteinG: data.proteinG != null ? String(Math.round(data.proteinG)) : f.proteinG,
         carbsG: data.carbsG != null ? String(Math.round(data.carbsG)) : f.carbsG,
         fatG: data.fatG != null ? String(Math.round(data.fatG)) : f.fatG,
+        fiberG: data.fiberG != null ? String(Math.round(data.fiberG)) : f.fiberG,
         recipeId: "",
         ingredients: []
       }));
@@ -160,6 +166,7 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
       fd.append("proteinG", form.proteinG);
       fd.append("carbsG", form.carbsG);
       fd.append("fatG", form.fatG);
+      fd.append("fiberG", form.fiberG);
       fd.append("notes", form.notes);
       fd.append("logDate", form.logDate);
       fd.append("mealType", form.mealType);
@@ -229,7 +236,7 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
         <div className="macro-chip-col">
           <div className="macro-chip">
             <span className="m-label"><span className="m-dot" style={{ background: "var(--series-martin)" }} />Protein</span>
-            <span className="m-value">{Math.round(proteinTotal)} g</span>
+            <span className="m-value">{proteinTarget != null ? Math.round(proteinTotal) + " / " + Math.round(proteinTarget) + " g" : Math.round(proteinTotal) + " g"}</span>
           </div>
           <div className="macro-chip">
             <span className="m-label"><span className="m-dot" style={{ background: "var(--status-warning)" }} />Carbs</span>
@@ -238,6 +245,10 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
           <div className="macro-chip">
             <span className="m-label"><span className="m-dot" style={{ background: "var(--series-laura)" }} />Fat</span>
             <span className="m-value">{Math.round(fatTotal)} g</span>
+          </div>
+          <div className="macro-chip">
+            <span className="m-label"><span className="m-dot" style={{ background: "var(--status-good)" }} />Fiber</span>
+            <span className="m-value">{Math.round(fiberTotal)} g</span>
           </div>
         </div>
       </div>
@@ -359,6 +370,16 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
             />
           </div>
           <div className="field">
+            <label htmlFor={"fiber-" + personId}>Fiber (g)</label>
+            <input
+              id={"fiber-" + personId}
+              type="number"
+              value={form.fiberG}
+              onChange={(e) => setField("fiberG", e.target.value)}
+              readOnly={form.ingredients.length > 0}
+            />
+          </div>
+          <div className="field">
             <label htmlFor={"date-" + personId}>Date</label>
             <input id={"date-" + personId} type="date" value={form.logDate} onChange={(e) => setField("logDate", e.target.value)} />
           </div>
@@ -399,6 +420,8 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
                 {s.carbs_g != null ? "C " + Math.round(s.carbs_g) + "g" : "C —"}
                 {"  ·  "}
                 {s.fat_g != null ? "F " + Math.round(s.fat_g) + "g" : "F —"}
+                {"  ·  "}
+                {s.fiber_g != null ? "Fi " + Math.round(s.fiber_g) + "g" : "Fi —"}
               </div>
             </div>
             <div className="log-card-cal">

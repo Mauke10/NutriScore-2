@@ -1,3 +1,4 @@
+import "./globals.css";
 import VersionWatcher from "./VersionWatcher";
 
 export const metadata = {

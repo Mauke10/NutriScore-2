@@ -6,7 +6,7 @@ import Modal from "./Modal";
 import { sumIngredients } from "./recipeMath";
 
 const blankRecipe = { id: null, name: "", meal_type: "meal", portion_note: "", ingredients: [] };
-const blankIngredient = { name: "", grams: "", caloriesPer100g: "", proteinPer100g: "", carbsPer100g: "", fatPer100g: "" };
+const blankIngredient = { name: "", grams: "", caloriesPer100g: "", proteinPer100g: "", carbsPer100g: "", fatPer100g: "", fiberPer100g: "" };
 
 export default function RecipesPanel({ onClose }) {
   const [list, setList] = useState([]);
@@ -96,7 +96,8 @@ function withStringFields(ing) {
     caloriesPer100g: ing.caloriesPer100g != null ? String(ing.caloriesPer100g) : "",
     proteinPer100g: ing.proteinPer100g != null ? String(ing.proteinPer100g) : "",
     carbsPer100g: ing.carbsPer100g != null ? String(ing.carbsPer100g) : "",
-    fatPer100g: ing.fatPer100g != null ? String(ing.fatPer100g) : ""
+    fatPer100g: ing.fatPer100g != null ? String(ing.fatPer100g) : "",
+    fiberPer100g: ing.fiberPer100g != null ? String(ing.fiberPer100g) : ""
   };
 }
 
@@ -217,6 +218,10 @@ function RecipeDetail({ recipe, onBack, onSaved }) {
                     <span>F/100g</span>
                     <input type="number" value={ing.fatPer100g} onChange={(e) => setIngredientField(idx, "fatPer100g", e.target.value)} placeholder="13" />
                   </label>
+                  <label>
+                    <span>Fiber/100g</span>
+                    <input type="number" value={ing.fiberPer100g} onChange={(e) => setIngredientField(idx, "fiberPer100g", e.target.value)} placeholder="2" />
+                  </label>
                 </div>
                 <button type="button" className="ingredient-remove" onClick={() => removeIngredient(idx)} aria-label="Remove ingredient">
                   <Trash2 size={14} strokeWidth={2} />
@@ -233,7 +238,7 @@ function RecipeDetail({ recipe, onBack, onSaved }) {
           <span>Total</span>
           <strong>{Math.round(totals.calories)} kcal</strong>
           <span className="muted">
-            P {Math.round(totals.protein)}g · C {Math.round(totals.carbs)}g · F {Math.round(totals.fat)}g
+            P {Math.round(totals.protein)}g · C {Math.round(totals.carbs)}g · F {Math.round(totals.fat)}g · Fiber {Math.round(totals.fiber)}g
           </span>
         </div>
 

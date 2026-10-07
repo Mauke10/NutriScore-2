@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Menu, Settings, BookOpen, Palette } from "lucide-react";
+import { Menu, Target, Settings, BookOpen, Palette } from "lucide-react";
 
-export default function TopMenu({ onOpenSettings, onOpenRecipes, onOpenColour }) {
+export default function TopMenu({ onOpenGoals, onOpenSettings, onOpenRecipes, onOpenColour }) {
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
 
@@ -22,6 +22,17 @@ export default function TopMenu({ onOpenSettings, onOpenRecipes, onOpenColour })
       </button>
       {open && (
         <div className="dropdown-menu">
+          <button
+            type="button"
+            className="dropdown-item"
+            onClick={() => {
+              setOpen(false);
+              onOpenGoals();
+            }}
+          >
+            <Target strokeWidth={2} />
+            Goals
+          </button>
           <button
             type="button"
             className="dropdown-item"
