@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Nutriscore — offline</title>
+    <style>
+      :root {
+        --bg: #f9f9f7;
+        --text: #1c1c1a;
+        --muted: #6b6b65;
+        --accent: #d8542f;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0d0d0d;
+          --text: #f3f3f0;
+          --muted: #9a9a92;
+          --accent: #e8703f;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Public Sans", system-ui, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+        text-align: center;
+      }
+      .wrap {
+        max-width: 320px;
+      }
+      .mark {
+        font-size: 40px;
+        margin-bottom: 14px;
+      }
+      h1 {
+        font-size: 19px;
+        font-weight: 800;
+        margin: 0 0 8px;
+      }
+      p {
+        font-size: 14px;
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      button {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        padding: 10px 22px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:active {
+        opacity: 0.85;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="mark">📡</div>
+      <h1>You're offline</h1>
+      <p>Nutriscore needs a connection to load your data. Reconnect and try again — nothing you logged has been lost.</p>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </body>
+</html>
