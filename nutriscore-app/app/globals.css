@@ -16,6 +16,13 @@
   --status-warning: #b3790a;
   --status-critical: #d03b3b;
   --shadow: 0 1px 2px rgba(11, 11, 11, 0.06), 0 4px 16px rgba(11, 11, 11, 0.05);
+
+  /* Motion tokens — one set, used everywhere, so nothing improvises its own
+     curve. ease-out for anything entering/exiting, ease-in-out for something
+     moving/morphing on screen (a fill bar, a toggle thumb). */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --press-scale: scale(0.97);
 }
 
 /* Dark (classic) — used automatically when the device is set to dark and the
@@ -77,6 +84,20 @@
 
 html, body { padding: 0; margin: 0; }
 
+/* ---------- feels-native-on-a-phone baseline ---------- */
+html {
+  /* Kills the gray/blue flash Safari/Chrome paint on every tap — the single
+     loudest "this is a website" tell. Every tappable element below gets its
+     own :active state so removing this doesn't remove feedback, it replaces it. */
+  -webkit-tap-highlight-color: transparent;
+  /* No font-size inflation when the phone briefly goes landscape. */
+  -webkit-text-size-adjust: 100%;
+  /* This app has its own scroll containers (modals, dropdowns, the recipe
+     list) — without this, dragging past the top/bottom of the page triggers
+     Android's pull-to-refresh or iOS's whole-page rubber band instead. */
+  overscroll-behavior: none;
+}
+
 body {
   background: var(--page);
   color: var(--text-primary);
@@ -85,9 +106,36 @@ body {
   line-height: 1.5;
 }
 
+/* iOS Safari zooms the whole page on focus if an input's font is under 16px,
+   and doesn't zoom back out on blur. Only bumping it on touch/coarse
+   pointers keeps the tighter desktop sizing untouched. */
+@media (pointer: coarse) {
+  input, textarea, select { font-size: 16px; }
+}
+
+/* Every tappable control: no 300ms tap delay, no accidental text selection
+   or callout on a long press, and (further down) real :active feedback
+   since the tap-highlight flash above is gone. */
+button, a, [role="button"] {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+button, [role="button"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 h1, h2, h3 { font-family: "Manrope", "Public Sans", system-ui, sans-serif; margin: 0; }
 
-.wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top)) 20px 64px; }
 
 a { color: inherit; }
 
@@ -142,12 +190,75 @@ form textarea { resize: vertical; min-height: 42px; }
 button {
   font: inherit; font-weight: 700; font-size: 13px; border-radius: 8px;
   padding: 8px 14px; border: 1px solid transparent; cursor: pointer;
+  transition: transform 110ms var(--ease-out), opacity 110ms var(--ease-out), background 120ms var(--ease-out), border-color 120ms var(--ease-out), color 120ms var(--ease-out);
 }
 button.primary { background: var(--series-martin); color: #fff; }
 [data-person="laura"] button.primary { background: var(--series-laura); }
 button.ghost { background: transparent; border-color: var(--border); color: var(--text-secondary); }
 button.danger { background: transparent; color: var(--status-critical); border: none; font-weight: 600; padding: 4px 8px; font-size: 12px; }
 button:disabled { opacity: 0.5; cursor: default; }
+
+/* Press feedback on *every* button — fires on touch-down/mouse-down, not on
+   release, because waiting for the tap to complete is the exact lag a
+   native control never has. Discrete controls (pills, chips, icon buttons,
+   cards) get a tactile scale; full-width list rows get a tint instead —
+   shrinking a row from both edges while it stays full width reads as a
+   glitch, not as "pressed". */
+button:active {
+  opacity: 0.85;
+}
+button.primary:active,
+button.ghost:active,
+button.danger:active,
+.seg-btn:active,
+.profile-btn:active,
+.bottom-nav-btn:active,
+.top-menu-btn:active,
+.fab-camera:active,
+.plan-cal-nav-btn:active,
+.plan-cal-today-btn:active,
+.plan-cal-cell:active,
+.colour-swatch:active,
+.night-style-btn:active,
+.modal-close:active,
+.ingredient-remove:active,
+.ingredient-add:active,
+.log-card-remove:active,
+.log-card-edit:active,
+.theme-switch:active {
+  transform: var(--press-scale);
+  opacity: 1;
+}
+.dropdown-item:active,
+.recipe-option:active,
+.recipe-list-row:active {
+  background: var(--page);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:active,
+  button.primary:active,
+  button.ghost:active,
+  button.danger:active,
+  .seg-btn:active,
+  .profile-btn:active,
+  .bottom-nav-btn:active,
+  .top-menu-btn:active,
+  .fab-camera:active,
+  .plan-cal-nav-btn:active,
+  .plan-cal-today-btn:active,
+  .plan-cal-cell:active,
+  .colour-swatch:active,
+  .night-style-btn:active,
+  .modal-close:active,
+  .ingredient-remove:active,
+  .ingredient-add:active,
+  .log-card-remove:active,
+  .log-card-edit:active,
+  .theme-switch:active {
+    transform: none; /* keep the opacity/background cue, drop the movement */
+  }
+}
 
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -216,7 +327,11 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .photo-drop img { max-height: 150px; max-width: 100%; object-fit: contain; padding: 6px; }
 .photo-drop span { color: var(--text-muted); font-size: 12.5px; padding: 18px; text-align: center; }
 
-.login-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-shell {
+  min-height: 100dvh; /* not 100vh — that's the collapsed-chrome max, and overflows by the URL bar's height on load */
+  display: flex; align-items: center; justify-content: center;
+  padding: calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));
+}
 .login-card { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: var(--shadow); }
 .login-card h1 { font-size: 22px; margin-bottom: 4px; }
 .login-card p { color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; }
@@ -250,7 +365,7 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 
 /* Meal/snack toggle */
 .segmented { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 9px; padding: 2px; gap: 2px; }
-.seg-btn { background: transparent; color: var(--text-secondary); font-size: 12.5px; font-weight: 600; padding: 6px 14px; border-radius: 7px; }
+.seg-btn { background: transparent; color: var(--text-secondary); font-size: 12.5px; font-weight: 600; padding: 6px 14px; border-radius: 7px; transition: background 150ms var(--ease-out), color 150ms var(--ease-out); }
 .seg-btn.selected { background: var(--series-martin); color: #fff; }
 [data-person="laura"] .seg-btn.selected { background: var(--series-laura); }
 
@@ -264,13 +379,27 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
   position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20;
   background: var(--surface-raised); border: 1px solid var(--border); border-radius: 10px;
   box-shadow: var(--shadow); max-height: 220px; overflow-y: auto; padding: 4px;
+  overscroll-behavior: contain;
+  transform-origin: top center;
+  transition: opacity 120ms var(--ease-out), scale 120ms var(--ease-out);
+}
+@starting-style {
+  .recipe-dropdown { opacity: 0; scale: 0.97; }
+}
+@media (prefers-reduced-motion: reduce) {
+  @starting-style {
+    .recipe-dropdown { scale: 1; }
+  }
 }
 .recipe-option {
   width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px;
   background: transparent; border: none; text-align: left; padding: 8px 9px; border-radius: 7px;
   font-weight: 500; font-size: 12.5px; color: var(--text-primary);
 }
-.recipe-option:hover, .recipe-option:focus-visible { background: var(--page); }
+.recipe-option:focus-visible { background: var(--page); }
+@media (hover: hover) and (pointer: fine) {
+  .recipe-option:hover { background: var(--page); }
+}
 .recipe-option-name { font-weight: 600; }
 .recipe-option-meta { color: var(--text-muted); font-size: 11px; font-weight: 500; white-space: nowrap; }
 .recipe-dropdown-hint { padding: 8px 9px; color: var(--text-muted); font-size: 12px; }
@@ -284,7 +413,7 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
    combines Strava-synced distance with manually logged sessions). */
 .goal-progress { display: flex; flex-direction: column; gap: 3px; }
 .goal-progress-track { height: 5px; border-radius: 3px; background: var(--gridline); overflow: hidden; }
-.goal-progress-fill { height: 100%; border-radius: 3px; transition: width 0.2s ease; }
+.goal-progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s var(--ease-in-out); }
 .goal-progress-label { font-size: 10.5px; color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 500px) {
@@ -297,15 +426,25 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .bar-stat-label { font-size: 11px; color: var(--text-secondary); font-weight: 600; }
 .bar-stat-value { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .bar-stat-track { height: 8px; border-radius: 4px; background: var(--gridline); overflow: hidden; }
-.bar-stat-fill { height: 100%; border-radius: 4px; min-width: 3px; transition: width 0.3s ease; }
+.bar-stat-fill { height: 100%; border-radius: 4px; min-width: 3px; transition: width 0.3s var(--ease-in-out); }
 
 /* Bottom mobile nav */
 .bottom-nav {
   display: none;
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
-  background: var(--surface-raised); border-top: 1px solid var(--border);
+  /* A translucent material (like iOS's own tab bar) instead of a flat opaque
+     panel — content keeps scrolling underneath it, you just see less of it
+     through the blur as it passes. Falls back to the old solid surface
+     automatically wherever backdrop-filter isn't supported. */
+  background: color-mix(in srgb, var(--surface-raised) 72%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid var(--border);
   padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   box-shadow: 0 -2px 12px rgba(11, 11, 11, 0.06);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bottom-nav { background: var(--surface-raised); }
 }
 .bottom-nav-inner { display: grid; grid-template-columns: repeat(5, 1fr); max-width: 520px; margin: 0 auto; }
 .bottom-nav-btn {
@@ -334,39 +473,82 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; min-width: 180px;
   background: var(--surface-raised); border: 1px solid var(--border); border-radius: 12px;
   box-shadow: var(--shadow); padding: 6px;
+  /* Grows from the menu button that opened it, not from its own center —
+     the spatial link between trigger and menu should be obvious. */
+  transform-origin: top left;
+  transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out), scale 140ms var(--ease-out);
+}
+@starting-style {
+  .dropdown-menu { opacity: 0; scale: 0.94; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-menu { transition: opacity 140ms var(--ease-out); }
+  @starting-style {
+    .dropdown-menu { scale: 1; }
+  }
 }
 .dropdown-item {
   width: 100%; display: flex; align-items: center; gap: 10px; background: transparent; border: none;
   text-align: left; padding: 9px 10px; border-radius: 8px; font-weight: 600; font-size: 13px;
   color: var(--text-primary); cursor: pointer;
 }
-.dropdown-item:hover { background: var(--page); }
+@media (hover: hover) and (pointer: fine) {
+  .dropdown-item:hover { background: var(--page); }
+}
 .dropdown-item svg { width: 17px; height: 17px; color: var(--text-secondary); }
 
-/* Modals */
+/* Modals — materialize in (fade + a slight scale-up, never from scale(0)),
+   and exit the same way in reverse. Modals aren't anchored to the control
+   that opened them (there usually isn't one specific trigger), so unlike the
+   dropdown/recipe-dropdown above they stay centered rather than growing from
+   a transform-origin. Modal.js adds/removes .is-closing to play the exit
+   before it actually unmounts, since @starting-style only covers entry. */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 50; background: rgba(11, 11, 11, 0.45);
   display: flex; align-items: center; justify-content: center; padding: 20px;
+  transition: opacity 180ms var(--ease-out);
 }
+@starting-style {
+  .modal-overlay { opacity: 0; }
+}
+.modal-overlay.is-closing { opacity: 0; }
+
 .modal {
   width: 100%; max-width: 460px; max-height: 85vh; overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--surface-raised); border: 1px solid var(--border); border-radius: 16px;
   box-shadow: var(--shadow); padding: 18px 20px 22px;
+  transition: opacity 180ms var(--ease-out), scale 180ms var(--ease-out);
 }
+@starting-style {
+  .modal { opacity: 0; scale: 0.95; }
+}
+.modal-overlay.is-closing .modal { opacity: 0; scale: 0.95; }
+
+@media (prefers-reduced-motion: reduce) {
+  .modal, .modal-overlay { transition: opacity 180ms var(--ease-out); }
+  @starting-style {
+    .modal { scale: 1; }
+  }
+  .modal-overlay.is-closing .modal { scale: 1; }
+}
+
 .modal-wide { max-width: 580px; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .modal-header h3 { font-size: 16px; font-weight: 800; }
 .modal-close { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; }
 .modal-close svg { width: 18px; height: 18px; }
 
-.recipe-list { display: flex; flex-direction: column; gap: 4px; max-height: 50vh; overflow-y: auto; }
+.recipe-list { display: flex; flex-direction: column; gap: 4px; max-height: 50vh; overflow-y: auto; overscroll-behavior: contain; }
 .recipe-list-row {
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%;
   background: var(--page); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px;
   cursor: pointer; text-align: left;
 }
-.recipe-list-row:hover { border-color: var(--series-martin); }
-[data-person="laura"] .recipe-list-row:hover { border-color: var(--series-laura); }
+@media (hover: hover) and (pointer: fine) {
+  .recipe-list-row:hover { border-color: var(--series-martin); }
+  [data-person="laura"] .recipe-list-row:hover { border-color: var(--series-laura); }
+}
 .recipe-list-name { font-weight: 700; font-size: 13px; }
 .recipe-list-meta { font-size: 11.5px; color: var(--text-muted); }
 
@@ -382,7 +564,9 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .ingredient-nums span { font-size: 9.5px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
 .ingredient-nums input { padding: 5px 6px; font-size: 12.5px; }
 .ingredient-remove { background: transparent; border: none; color: var(--text-muted); padding: 5px; margin-top: 2px; }
-.ingredient-remove:hover { color: var(--status-critical); }
+@media (hover: hover) and (pointer: fine) {
+  .ingredient-remove:hover { color: var(--status-critical); }
+}
 .ingredient-add { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; font-size: 12px; padding: 6px 12px; }
 .recipe-totals-bar {
   flex-direction: row !important; align-items: baseline; gap: 8px; flex-wrap: wrap;
@@ -402,12 +586,24 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .ingredient-log-row input { width: 64px; flex: 0 0 auto; text-align: right; }
 .ingredient-log-unit { font-size: 11.5px; color: var(--text-muted); font-weight: 600; }
 
+/* 7-day calorie trend strip (sits above the calorie ring) */
+.week-trend { margin-bottom: 14px; }
+.week-trend-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.week-trend-label { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.week-trend-median { font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.week-trend-median strong { color: var(--text-primary); font-weight: 800; }
+.week-trend-delta { color: var(--status-good); font-weight: 600; }
+.week-trend-delta.over { color: var(--status-warning); }
+.week-trend-chart { display: block; width: 100%; height: 72px; overflow: visible; }
+.week-trend-goal-line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.55; }
+.week-trend-daylabel { font-size: 8px; font-weight: 700; fill: var(--text-muted); text-transform: uppercase; }
+
 /* Calorie ring + macro chips */
 .cal-ring-row { display: flex; align-items: center; gap: 20px; margin-bottom: 14px; flex-wrap: wrap; }
 .cal-ring-figure { position: relative; width: 128px; height: 128px; flex-shrink: 0; }
 .cal-ring-figure svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .cal-ring-track { fill: none; stroke: var(--gridline); }
-.cal-ring-progress { fill: none; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease; }
+.cal-ring-progress { fill: none; stroke-linecap: round; transition: stroke-dashoffset 0.4s var(--ease-in-out), stroke 0.3s var(--ease-out); }
 .cal-ring-center {
   position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; text-align: center; padding: 0 10px;
@@ -439,9 +635,13 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .log-card-cal { text-align: right; flex-shrink: 0; }
 .log-card-cal .v { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .log-card-cal .u { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
-.log-card-remove { background: transparent; border: none; color: var(--text-muted); padding: 5px; display: flex; cursor: pointer; flex-shrink: 0; border-radius: 6px; }
-.log-card-remove svg { width: 15px; height: 15px; }
-.log-card-remove:hover { color: var(--status-critical); }
+.log-card-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.log-card-remove, .log-card-edit { background: transparent; border: none; color: var(--text-muted); padding: 5px; display: flex; cursor: pointer; flex-shrink: 0; border-radius: 6px; }
+.log-card-remove svg, .log-card-edit svg { width: 15px; height: 15px; }
+@media (hover: hover) and (pointer: fine) {
+  .log-card-remove:hover { color: var(--status-critical); }
+  .log-card-edit:hover { color: var(--text-primary); }
+}
 .log-cards-empty { text-align: center; color: var(--text-muted); font-size: 12.5px; padding: 20px 0; }
 
 /* Floating camera button (mobile) */
@@ -485,7 +685,7 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .theme-switch-thumb {
   width: 22px; height: 22px; border-radius: 50%; background: var(--surface-raised);
   color: var(--text-secondary); display: flex; align-items: center; justify-content: center;
-  box-shadow: var(--shadow); transition: transform 0.2s ease; transform: translateX(0);
+  box-shadow: var(--shadow); transition: transform 0.2s var(--ease-in-out); transform: translateX(0);
 }
 .theme-switch[aria-checked="true"] .theme-switch-thumb { transform: translateX(24px); color: #f5d76e; }
 

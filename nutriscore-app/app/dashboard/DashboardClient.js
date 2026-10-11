@@ -52,7 +52,26 @@ export default function DashboardClient({ me }) {
     } catch {
       // ignore unavailable storage
     }
+    // Keep the status bar / task-switcher chrome (theme-color meta tag,
+    // set up in layout.js) matching whatever's actually on screen.
+    window.__nutriscoreApplyThemeColor?.(theme.mode);
   }, [theme]);
+
+  // "Match my device" (theme.mode === null) needs to keep tracking the OS
+  // setting live, not just at the moment it was picked — e.g. the phone
+  // flips into dark mode at sunset while the app is already open.
+  useEffect(() => {
+    if (theme.mode) return;
+    let mql;
+    try {
+      mql = window.matchMedia("(prefers-color-scheme: dark)");
+    } catch {
+      return;
+    }
+    const onChange = () => window.__nutriscoreApplyThemeColor?.(null);
+    mql.addEventListener?.("change", onChange);
+    return () => mql.removeEventListener?.("change", onChange);
+  }, [theme.mode]);
 
   function handleThemeChange(next) {
     setTheme(next || { mode: null, night: theme.night });

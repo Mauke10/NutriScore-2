@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 import { todayStr } from "./utils";
 import RecipePicker from "./RecipePicker";
 import { sumIngredients } from "./recipeMath";
+import WeekCalorieTrend from "./WeekCalorieTrend";
+import Modal from "./Modal";
 
 const RING_SIZE = 128;
 const RING_STROKE = 12;
@@ -20,10 +22,21 @@ const emptyForm = {
   fiberG: "",
   notes: "",
   logDate: todayStr(),
-  mealType: "snack",
+  mealType: "meal",
   recipeId: "",
   ingredients: [], // set when logging from a saved recipe — lets grams be tweaked per log ("only had 150g of the rice")
   saveAsRecipe: false
+};
+
+const emptyEditForm = {
+  description: "",
+  calories: "",
+  proteinG: "",
+  carbsG: "",
+  fatG: "",
+  fiberG: "",
+  mealType: "meal",
+  logDate: todayStr()
 };
 
 export default function SnackSection({ personId, isMe, snacks, refreshSnacks, calorieTarget, proteinTarget, registerCameraTrigger }) {
@@ -35,6 +48,14 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
   const [error, setError] = useState("");
   const [assumption, setAssumption] = useState("");
   const fileInputRef = useRef(null);
+
+  // Editing an already-logged entry (fixing a typo'd number, or "that was a
+  // meal, not a snack") — separate from the add-new form above, opened in
+  // its own modal so the main log form doesn't have to juggle two modes.
+  const [editing, setEditing] = useState(null); // null | the entry being edited
+  const [editForm, setEditForm] = useState(emptyEditForm);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const today = todayStr();
   const todaysEntries = snacks.filter((s) => s.log_date === today);
@@ -194,6 +215,64 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
     await refreshSnacks();
   }
 
+  function setEditField(key, value) {
+    setEditForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function openEdit(entry) {
+    setEditing(entry);
+    setEditForm({
+      description: entry.description || "",
+      calories: entry.calories != null ? String(entry.calories) : "",
+      proteinG: entry.protein_g != null ? String(entry.protein_g) : "",
+      carbsG: entry.carbs_g != null ? String(entry.carbs_g) : "",
+      fatG: entry.fat_g != null ? String(entry.fat_g) : "",
+      fiberG: entry.fiber_g != null ? String(entry.fiber_g) : "",
+      mealType: entry.meal_type === "meal" ? "meal" : "snack",
+      logDate: entry.log_date || todayStr()
+    });
+    setEditError("");
+  }
+
+  function closeEdit() {
+    setEditing(null);
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault();
+    if (!editForm.description.trim() || editForm.calories === "") {
+      setEditError("Need at least a description and a calorie number.");
+      return;
+    }
+    setEditSaving(true);
+    setEditError("");
+    try {
+      const res = await fetch("/api/snacks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editing.id,
+          description: editForm.description,
+          calories: editForm.calories,
+          proteinG: editForm.proteinG,
+          carbsG: editForm.carbsG,
+          fatG: editForm.fatG,
+          fiberG: editForm.fiberG,
+          mealType: editForm.mealType,
+          logDate: editForm.logDate
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Save failed");
+      setEditing(null);
+      await refreshSnacks();
+    } catch (err) {
+      setEditError(err.message);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
   const recent = snacks.slice(0, 14);
 
   return (
@@ -201,6 +280,8 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
       <h3>
         Meals & snacks <span className="muted">— today</span>
       </h3>
+
+      <WeekCalorieTrend personId={personId} snacks={snacks} calorieTarget={calorieTarget} />
 
       <div className="cal-ring-row">
         <div className="cal-ring-figure">
@@ -429,13 +510,77 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
               <div className="u">kcal</div>
             </div>
             {isMe && (
-              <button type="button" className="log-card-remove" onClick={() => removeEntry(s.id)} aria-label="Remove entry">
-                <Trash2 size={15} strokeWidth={2} />
-              </button>
+              <div className="log-card-actions">
+                <button type="button" className="log-card-edit" onClick={() => openEdit(s)} aria-label="Edit entry">
+                  <Pencil size={15} strokeWidth={2} />
+                </button>
+                <button type="button" className="log-card-remove" onClick={() => removeEntry(s.id)} aria-label="Remove entry">
+                  <Trash2 size={15} strokeWidth={2} />
+                </button>
+              </div>
             )}
           </div>
         ))}
       </div>
+
+      {editing && (
+        <Modal title="Edit entry" onClose={closeEdit}>
+          <form onSubmit={saveEdit}>
+            <div className="field wide">
+              <div className="segmented">
+                <button
+                  type="button"
+                  className={editForm.mealType === "meal" ? "seg-btn selected" : "seg-btn"}
+                  onClick={() => setEditField("mealType", "meal")}
+                >
+                  Meal
+                </button>
+                <button
+                  type="button"
+                  className={editForm.mealType === "snack" ? "seg-btn selected" : "seg-btn"}
+                  onClick={() => setEditField("mealType", "snack")}
+                >
+                  Snack
+                </button>
+              </div>
+            </div>
+            <div className="field wide">
+              <label htmlFor="edit-desc">Description</label>
+              <input id="edit-desc" value={editForm.description} onChange={(e) => setEditField("description", e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="edit-cal">Calories</label>
+              <input id="edit-cal" type="number" value={editForm.calories} onChange={(e) => setEditField("calories", e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="edit-prot">Protein (g)</label>
+              <input id="edit-prot" type="number" value={editForm.proteinG} onChange={(e) => setEditField("proteinG", e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="edit-carb">Carbs (g)</label>
+              <input id="edit-carb" type="number" value={editForm.carbsG} onChange={(e) => setEditField("carbsG", e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="edit-fat">Fat (g)</label>
+              <input id="edit-fat" type="number" value={editForm.fatG} onChange={(e) => setEditField("fatG", e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="edit-fiber">Fiber (g)</label>
+              <input id="edit-fiber" type="number" value={editForm.fiberG} onChange={(e) => setEditField("fiberG", e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="edit-date">Date</label>
+              <input id="edit-date" type="date" value={editForm.logDate} onChange={(e) => setEditField("logDate", e.target.value)} />
+            </div>
+            <div className="form-actions">
+              <button type="submit" className="primary" disabled={editSaving}>
+                {editSaving ? "Saving…" : "Save changes"}
+              </button>
+              {editError && <span className="error-text" style={{ marginTop: 0 }}>{editError}</span>}
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

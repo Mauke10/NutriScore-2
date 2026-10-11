@@ -125,6 +125,54 @@ export async function POST(request) {
   return NextResponse.json({ ok: true });
 }
 
+// PATCH /api/snacks — JSON body { id, description?, calories?, proteinG?,
+// carbsG?, fatG?, fiberG?, mealType?, logDate?, notes? }. Only the fields
+// present get touched; only your own entries can be edited. For fixing a
+// mistake after the fact (wrong meal/snack tag, a typo'd calorie number),
+// not for changing who it belongs to or its photo/recipe link.
+export async function PATCH(request) {
+  const me = currentPerson();
+  if (!me) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Bad request" }, { status: 400 });
+  }
+
+  const id = (body.id || "").toString();
+  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  const row = {};
+  if (typeof body.description === "string") {
+    const d = body.description.trim();
+    if (!d) return NextResponse.json({ error: "Description can't be empty." }, { status: 400 });
+    row.description = d;
+  }
+  if ("calories" in body) {
+    const c = numOrNull(body.calories);
+    if (c === null) return NextResponse.json({ error: "Calories must be a number." }, { status: 400 });
+    row.calories = c;
+  }
+  if ("proteinG" in body) row.protein_g = numOrNull(body.proteinG);
+  if ("carbsG" in body) row.carbs_g = numOrNull(body.carbsG);
+  if ("fatG" in body) row.fat_g = numOrNull(body.fatG);
+  if ("fiberG" in body) row.fiber_g = numOrNull(body.fiberG);
+  if (body.mealType === "meal" || body.mealType === "snack") row.meal_type = body.mealType;
+  if (typeof body.logDate === "string" && body.logDate) row.log_date = body.logDate;
+  if (typeof body.notes === "string") row.notes = body.notes;
+
+  if (Object.keys(row).length === 0) {
+    return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
+  }
+
+  const supabase = supabaseServer();
+  const { error } = await supabase.from("food_logs").update(row).eq("id", id).eq("person_id", me);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
 // DELETE /api/snacks?id=<uuid> — only your own entries.
 export async function DELETE(request) {
   const me = currentPerson();
