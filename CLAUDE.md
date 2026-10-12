@@ -86,6 +86,16 @@ It previously caused an infinite reload loop (the bug that opened the last sessi
 
 `public/sw.js` is intentionally narrow: it only caches the static app shell (JS/CSS bundle, `public/offline.html`) and only for same-origin GET requests. It explicitly never touches `/api/*` or any non-GET request — this app's data lives in Supabase, so caching an API response would mean showing stale numbers as if current, or letting a save silently "succeed" from cache. Network-first for everything, so a fresh deploy always wins over a cached one (keeps it compatible with VersionWatcher above). `app/OfflineBanner.js` shows a plain-language banner the moment `navigator.onLine` goes false. `app/ServiceWorkerRegister.js` only registers the worker in production (`NODE_ENV !== "production"` bails early) so local dev never fights a stale cache.
 
+## Design tokens (globals.css)
+
+Every font-size, gap/padding/margin and border-radius in `globals.css` uses a token from `:root`. Use them for new UI too, and never hardcode a px value next to them:
+- **Type:** `--text-2xs` (10px) … `--text-3xl` (26px). Nothing goes below `--text-2xs`.
+- **Spacing:** `--space-0-5` (2px) … `--space-7` (28px), 2px steps, no odd values.
+- **Radius:** `--radius-xs` … `--radius-2xl`, plus `--radius-full`. A nested surface is one step smaller than its parent.
+- **Per-person colour:** use `--accent` / `--accent-soft`, never `--series-martin` with a `[data-person="laura"]` override. The nearest `[data-person]` ancestor decides the colour, and `.wrap` carries the signed-in person's. `--series-*` is still right where both people show at once (charts, compare columns, dots). The accent vars are declared on `.wrap`/`[data-person]`, not `:root`, because DashboardClient sets custom colours inline on `.wrap`.
+- **Contrast:** light-theme `--text-muted`, `--status-good` and `--status-warning` were darkened to pass 4.5:1 as text. Re-check contrast if you change them.
+- Small icon buttons get a 44px tap area from an invisible `::after` (see "Tap targets" at the end of the file). Add new small buttons to that list.
+
 ## PWA / mobile details worth knowing before touching layout or theming
 
 - `app/layout.js` sets `viewport-fit=cover` + an inline script (`THEME_COLOR_SNIPPET`) that applies the saved theme and a matching `<meta name="theme-color">` *before* first paint, to avoid a flash of the wrong theme/status-bar color. There is deliberately no static `<meta name="theme-color">` tag in the JSX — the script creates the one and only instance. Don't add a second one.

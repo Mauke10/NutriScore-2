@@ -72,10 +72,10 @@ export default function SettingsPanel({ personId, stravaStatus, refreshStravaSta
   return (
     <Modal title="Settings" onClose={onClose}>
       <div>
-        <h4 style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>Strava</h4>
+        <h4 className="panel-heading">Strava</h4>
         {stravaStatus && stravaStatus.connected ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12.5, color: "var(--text-secondary)" }}>Connected{stravaStatus.athleteId ? " (athlete " + stravaStatus.athleteId + ")" : ""}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2-5)", flexWrap: "wrap" }}>
+            <span className="status-text">Connected{stravaStatus.athleteId ? " (athlete " + stravaStatus.athleteId + ")" : ""}</span>
             <button type="button" className="ghost" onClick={syncNow} disabled={syncing}>
               {syncing ? "Syncing…" : "Sync now"}
             </button>
@@ -89,11 +89,11 @@ export default function SettingsPanel({ personId, stravaStatus, refreshStravaSta
         )}
       </div>
 
-      {msg && <p style={{ fontSize: 12.5, color: "var(--text-secondary)", marginTop: 16 }}>{msg}</p>}
+      {msg && <p className="status-text spaced">{msg}</p>}
 
-      <div style={{ marginTop: 24, paddingTop: 18, borderTop: "1px solid var(--gridline)" }}>
-        <h4 style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>Change your PIN</h4>
-        <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 10 }}>
+      <div className="panel-section">
+        <h4 className="panel-heading">Change your PIN</h4>
+        <p className="panel-desc">
           This only changes your own login PIN — {personId === "laura" ? "Martin's" : "Laura's"} stays whatever it is now.
         </p>
         <form onSubmit={changePin}>
@@ -137,8 +137,8 @@ export default function SettingsPanel({ personId, stravaStatus, refreshStravaSta
             <button type="submit" className="primary" disabled={pinSaving}>
               {pinSaving ? "Saving…" : "Change PIN"}
             </button>
-            {pinError && <span className="error-text" style={{ marginTop: 0 }}>{pinError}</span>}
-            {!pinError && pinMsg && <span style={{ fontSize: 12, color: "var(--status-good)", fontWeight: 600 }}>{pinMsg}</span>}
+            {pinError && <span className="error-text inline">{pinError}</span>}
+            {!pinError && pinMsg && <span className="success-text">{pinMsg}</span>}
           </div>
         </form>
       </div>

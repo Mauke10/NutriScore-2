@@ -34,7 +34,7 @@ export default function PersonColumn({ personId, displayName, seriesVar, isMe, d
           <span className="dot" style={{ background: "var(" + seriesVar + ")" }} />
           {displayName}
         </h2>
-        {isMe && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>(you)</span>}
+        {isMe && <span className="you-tag">(you)</span>}
       </div>
 
       <SnackSection

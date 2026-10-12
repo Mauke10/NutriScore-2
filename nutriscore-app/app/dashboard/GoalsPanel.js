@@ -74,7 +74,7 @@ export default function GoalsPanel({
         </div>
 
         <div className="field wide">
-          <label style={{ marginTop: 6 }}>Monthly training distance</label>
+          <label style={{ marginTop: "var(--space-1-5)" }}>Monthly training distance</label>
         </div>
         <div className="field">
           <label htmlFor={"goal-swim-" + personId}>Swim</label>
@@ -111,7 +111,7 @@ export default function GoalsPanel({
           <button type="submit" className="primary" disabled={saving}>
             {saving ? "Saving…" : "Save"}
           </button>
-          {msg && <span style={{ fontSize: 12.5, color: "var(--text-secondary)" }}>{msg}</span>}
+          {msg && <span className="status-text">{msg}</span>}
         </div>
       </form>
     </Modal>

@@ -62,7 +62,7 @@ export default function LoginPage() {
               Laura
             </button>
           </div>
-          <div className="field wide" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div className="field wide" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
             <label htmlFor="pin">PIN</label>
             <input
               id="pin"
@@ -75,7 +75,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="error-text">{error}</div>
-          <button type="submit" className="primary" disabled={busy} style={{ width: "100%", marginTop: 6 }}>
+          <button type="submit" className="primary" disabled={busy} style={{ width: "100%", marginTop: "var(--space-1-5)" }}>
             {busy ? "Checking…" : "Enter"}
           </button>
         </form>

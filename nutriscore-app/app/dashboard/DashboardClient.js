@@ -20,8 +20,8 @@ import Whiteboard from "./Whiteboard";
 import TodayPlanStrip from "./TodayPlanStrip";
 import TrainingPlanCalendar from "./TrainingPlanCalendar";
 import CompareColumns from "./CompareColumns";
+import { DEFAULT_COLOR } from "./utils";
 
-const DEFAULT_COLOR = { martin: "#7c3aed", laura: "#db2777" };
 const THEME_KEY = "nutriscore-theme";
 
 export default function DashboardClient({ me }) {
@@ -97,9 +97,9 @@ export default function DashboardClient({ me }) {
   const lauraColor = laura.accentColor || DEFAULT_COLOR.laura;
 
   return (
-    <div className="wrap" style={{ "--series-martin": martinColor, "--series-laura": lauraColor }}>
+    <div className="wrap" data-person={me} style={{ "--series-martin": martinColor, "--series-laura": lauraColor }}>
       <div className="top-bar">
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-2-5)" }}>
           <TopMenu
             onOpenGoals={() => setOpenPanel("goals")}
             onOpenSettings={() => setOpenPanel("settings")}
@@ -112,7 +112,7 @@ export default function DashboardClient({ me }) {
           </div>
         </div>
         <div className="whoami">
-          Signed in as <strong style={{ color: "var(--text-primary)" }}>{me === "martin" ? "Martin" : "Laura"}</strong>
+          Signed in as <strong className="whoami-name">{me === "martin" ? "Martin" : "Laura"}</strong>
           <button type="button" className="ghost" onClick={logout}>
             Log out
           </button>
