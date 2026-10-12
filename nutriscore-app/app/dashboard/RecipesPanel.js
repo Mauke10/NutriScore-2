@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Plus, Trash2 } from "lucide-react";
 import Modal from "./Modal";
 import { sumIngredients } from "./recipeMath";
+import FoodSearch from "./FoodSearch";
 
 const blankRecipe = { id: null, name: "", meal_type: "meal", portion_note: "", ingredients: [] };
 const blankIngredient = { name: "", grams: "", caloriesPer100g: "", proteinPer100g: "", carbsPer100g: "", fatPer100g: "", fiberPer100g: "" };
@@ -97,7 +98,8 @@ function withStringFields(ing) {
     proteinPer100g: ing.proteinPer100g != null ? String(ing.proteinPer100g) : "",
     carbsPer100g: ing.carbsPer100g != null ? String(ing.carbsPer100g) : "",
     fatPer100g: ing.fatPer100g != null ? String(ing.fatPer100g) : "",
-    fiberPer100g: ing.fiberPer100g != null ? String(ing.fiberPer100g) : ""
+    fiberPer100g: ing.fiberPer100g != null ? String(ing.fiberPer100g) : "",
+    foodId: ing.foodId || null
   };
 }
 
@@ -105,7 +107,7 @@ function RecipeDetail({ recipe, onBack, onSaved }) {
   const [name, setName] = useState(recipe.name || "");
   const [mealType, setMealType] = useState(recipe.meal_type || "meal");
   const [portionNote, setPortionNote] = useState(recipe.portion_note || "");
-  const [ingredients, setIngredients] = useState(recipe.ingredients && recipe.ingredients.length ? recipe.ingredients : [{ ...blankIngredient }]);
+  const [ingredients, setIngredients] = useState(recipe.ingredients && recipe.ingredients.length ? recipe.ingredients : []);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
@@ -118,6 +120,11 @@ function RecipeDetail({ recipe, onBack, onSaved }) {
 
   function addIngredient() {
     setIngredients((rows) => [...rows, { ...blankIngredient }]);
+  }
+
+  // From the food database — macros filled in, you just set the grams.
+  function addFood(ing) {
+    setIngredients((rows) => [...rows, withStringFields(ing)]);
   }
 
   function removeIngredient(idx) {
@@ -187,7 +194,7 @@ function RecipeDetail({ recipe, onBack, onSaved }) {
         </div>
 
         <div className="field wide">
-          <label>Ingredients — grams &amp; macros per 100g</label>
+          <label htmlFor="recipe-food-search">Ingredients — grams &amp; macros per 100g</label>
           <div className="ingredient-editor">
             {ingredients.map((ing, idx) => (
               <div className="ingredient-row" key={idx}>
@@ -228,8 +235,9 @@ function RecipeDetail({ recipe, onBack, onSaved }) {
                 </button>
               </div>
             ))}
+            <FoodSearch id="recipe-food-search" onPick={addFood} />
             <button type="button" className="ghost ingredient-add" onClick={addIngredient}>
-              <Plus size={14} strokeWidth={2} /> Add ingredient
+              <Plus size={14} strokeWidth={2} /> Add manually
             </button>
           </div>
         </div>

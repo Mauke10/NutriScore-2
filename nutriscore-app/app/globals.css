@@ -991,3 +991,25 @@ button.checkin-delete { display: block; margin: var(--space-2) 0 0 auto; color: 
 .weight-trend-meta { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .weight-range { margin-top: var(--space-2-5); }
 .weight-range .seg-btn { padding: var(--space-1) var(--space-3); font-size: var(--text-sm); }
+
+/* Food database search (FoodSearch.js) — the ingredient builder in the log
+   form and the recipe editor. Reuses .recipe-dropdown/.recipe-option. */
+.food-dropdown { max-height: 300px; }
+.food-option-text { display: flex; flex-direction: column; gap: var(--space-0-5); min-width: 0; }
+.food-option-sub { font-size: var(--text-xs); color: var(--text-muted); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.food-option-per { font-size: var(--text-2xs); margin-left: var(--space-0-5); }
+.food-option-add { justify-content: flex-start; color: var(--accent); font-weight: 600; border-top: 1px solid var(--border); border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+.custom-food-form {
+  display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-2-5);
+}
+.custom-food-title { font-size: var(--text-xs); color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.custom-food-nums { grid-template-columns: repeat(5, minmax(48px, 1fr)); flex: none; }
+@media (max-width: 500px) {
+  .custom-food-nums { grid-template-columns: repeat(3, 1fr); }
+}
+.custom-food-form .form-actions { margin-top: 0; }
+.ingredient-log-kcal { font-size: var(--text-xs); color: var(--text-muted); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ingredient-log-row .ingredient-remove { margin-top: 0; padding: var(--space-1); }
+.build-ingredients-btn { display: inline-flex; align-items: center; gap: var(--space-1-5); align-self: flex-start; margin-top: var(--space-1-5); font-size: var(--text-sm); padding: var(--space-1-5) var(--space-3); }
+.food-credit { display: block; margin-top: var(--space-1); font-size: var(--text-2xs); }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseServer } from "../../../lib/supabase";
 import { currentPerson } from "../../../lib/auth";
+import { bumpFoodUse, normalizeIngredients, replaceRecipeIngredients } from "../../../lib/recipeIngredients";
 
 const BUCKET = "snack-photos";
 
@@ -39,8 +40,11 @@ export async function GET(request) {
 // POST /api/snacks — multipart/form-data: description, logDate, calories,
 // proteinG, carbsG, fatG, notes, source, mealType ('meal' | 'snack'),
 // recipeId (optional, if logged from a saved recipe), saveAsRecipe ('1' to
-// also save/update this as a recipe under `description`'s name), and an
-// optional "photo" file. Always logs under the caller's own person_id.
+// also save/update this as a recipe under `description`'s name), ingredients
+// (optional JSON array, when it was built from ingredients — saved onto the
+// recipe if saveAsRecipe is set, and counts towards each food's use_count so
+// your usual foods rank first in search), and an optional "photo" file.
+// Always logs under the caller's own person_id.
 export async function POST(request) {
   const me = currentPerson();
   if (!me) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -83,6 +87,12 @@ export async function POST(request) {
   const carbsG = numOrNull(formData.get("carbsG"));
   const fatG = numOrNull(formData.get("fatG"));
   const fiberG = numOrNull(formData.get("fiberG"));
+  let ingredients = null;
+  try {
+    ingredients = normalizeIngredients(JSON.parse((formData.get("ingredients") || "null").toString()));
+  } catch {
+    return NextResponse.json({ error: "Bad ingredients" }, { status: 400 });
+  }
 
   const row = {
     person_id: me,
@@ -115,12 +125,19 @@ export async function POST(request) {
       meal_type: mealType,
       updated_at: new Date().toISOString()
     };
+    let savedId = existing?.id;
     if (existing) {
       await supabase.from("recipes").update(recipeRow).eq("id", existing.id);
     } else {
-      await supabase.from("recipes").insert({ ...recipeRow, created_by: me });
+      const { data: inserted } = await supabase.from("recipes").insert({ ...recipeRow, created_by: me }).select("id").single();
+      savedId = inserted?.id;
     }
+    // Only replace the recipe's ingredient breakdown when this log actually
+    // had one — a plain-totals save shouldn't wipe an existing breakdown.
+    if (savedId && ingredients && ingredients.length) await replaceRecipeIngredients(supabase, savedId, ingredients);
   }
+
+  if (ingredients) await bumpFoodUse(supabase, ingredients.map((ing) => ing.food_id));
 
   return NextResponse.json({ ok: true });
 }
