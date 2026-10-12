@@ -954,6 +954,7 @@ button.checkin-delete { display: block; margin: var(--space-2) 0 0 auto; color: 
 .weight-chart-plot { position: relative; height: 84px; }
 .weight-chart svg { display: block; width: 100%; height: 84px; overflow: visible; }
 .weight-chart-grid { stroke: var(--gridline); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.weight-chart-trend { stroke: var(--text-muted); stroke-width: 1.5; stroke-dasharray: 4 4; opacity: 0.8; }
 .weight-chart-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 /* Points are HTML buttons over the SVG so they stay round (the SVG
    stretches) and get a real tap target. */
@@ -981,3 +982,12 @@ button.checkin-delete { display: block; margin: var(--space-2) 0 0 auto; color: 
 .marker-label { font-size: var(--text-xs); color: var(--text-secondary); font-weight: 600; }
 .marker-value { font-size: var(--text-lg); font-weight: 600; font-variant-numeric: tabular-nums; margin-top: var(--space-0-5); overflow-wrap: anywhere; }
 .marker-value.empty { color: var(--text-muted); font-weight: 400; }
+
+/* Trend summary under the weight hero — text tokens only; the arrow
+   carries direction, not a red/green judgement (losing isn't always the goal). */
+.weight-trend { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin-top: var(--space-1-5); font-size: var(--text-sm); }
+.weight-trend-label { color: var(--text-muted); font-weight: 600; }
+.weight-trend-value { display: inline-flex; align-items: center; gap: var(--space-0-5); font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; align-self: center; }
+.weight-trend-meta { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.weight-range { margin-top: var(--space-2-5); }
+.weight-range .seg-btn { padding: var(--space-1) var(--space-3); font-size: var(--text-sm); }

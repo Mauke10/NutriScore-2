@@ -75,6 +75,42 @@ function join(parts) {
   return parts.filter(Boolean).join(" · ");
 }
 
+const RANGES = [
+  { key: "12w", label: "12 wk", weeks: 12 },
+  { key: "6m", label: "6 mo", weeks: 26 },
+  { key: "1y", label: "1 yr", weeks: 52 }
+];
+
+// Whole days between two YYYY-MM-DD dates, parsed as local dates.
+function daysBetween(a, b) {
+  const [ay, am, ad] = a.split("-").map(Number);
+  const [by, bm, bd] = b.split("-").map(Number);
+  return Math.round((new Date(by, bm - 1, bd) - new Date(ay, am - 1, ad)) / 86400000);
+}
+
+// Least-squares line through the weigh-ins, on real dates so a skipped week
+// doesn't bend the slope. Needs 3+ points over at least 2 weeks to say
+// anything; returns kg/week plus the fitted start/end for drawing.
+function weightTrend(points) {
+  if (points.length < 3) return null;
+  const t = points.map((p) => daysBetween(points[0].week_start, p.week_start));
+  const v = points.map((p) => Number(p.weight_kg));
+  const span = t[t.length - 1];
+  if (span < 14) return null;
+  const n = t.length;
+  const mt = t.reduce((a, b) => a + b, 0) / n;
+  const mv = v.reduce((a, b) => a + b, 0) / n;
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (t[i] - mt) * (v[i] - mv);
+    den += (t[i] - mt) ** 2;
+  }
+  const slope = num / den; // kg per day
+  const at = (day) => mv + slope * (day - mt);
+  return { perWeek: slope * 7, start: at(0), end: at(span), spanWeeks: Math.round(span / 7) };
+}
+
 function rowToForm(w, weekStart) {
   return {
     weekStart,
@@ -124,9 +160,16 @@ export default function WeeklySection({ personId, isMe, weekly, refreshWeekly, s
   const current = byWeek.get(weekStart);
   const form = rowToForm(current, weekStart);
 
-  const weights = weekly.filter((w) => w.weight_kg != null).slice(0, 12).reverse();
-  const latest = weights[weights.length - 1];
-  const previous = weights[weights.length - 2];
+  const [range, setRange] = useState("12w");
+  const allWeights = useMemo(() => weekly.filter((w) => w.weight_kg != null).reverse(), [weekly]);
+  const rangeWeeks = RANGES.find((r) => r.key === range).weeks;
+  const rangeStart = shiftWeek(thisWeek, -(rangeWeeks - 1));
+  const weights = allWeights.filter((w) => w.week_start >= rangeStart);
+  const trend = weightTrend(weights);
+  // Only offer longer ranges once there's data older than 12 weeks.
+  const hasOlder = allWeights.length > 0 && allWeights[0].week_start < shiftWeek(thisWeek, -11);
+  const latest = allWeights[allWeights.length - 1];
+  const previous = allWeights[allWeights.length - 2];
   const delta = latest && previous ? Number(latest.weight_kg) - Number(previous.weight_kg) : null;
 
   async function removeWeek() {
@@ -157,7 +200,38 @@ export default function WeeklySection({ personId, isMe, weekly, refreshWeekly, s
       ) : (
         <p className="status-text muted">No weight logged yet.</p>
       )}
-      {weights.length >= 2 && <WeightChart points={weights} />}
+      {trend && (
+        <div className="weight-trend">
+          <span className="weight-trend-label">Trend</span>
+          {Math.abs(trend.perWeek) < 0.05 ? (
+            <span className="weight-trend-value">holding steady</span>
+          ) : (
+            <span className="weight-trend-value">
+              {trend.perWeek < 0 ? <TrendingDown size={14} strokeWidth={2} /> : <TrendingUp size={14} strokeWidth={2} />}
+              {(trend.perWeek > 0 ? "+" : "−") + Math.abs(trend.perWeek).toFixed(2)} kg/week
+            </span>
+          )}
+          <span className="weight-trend-meta">
+            {(trend.end - trend.start > 0 ? "+" : "−") + Math.abs(trend.end - trend.start).toFixed(1)} kg over {trend.spanWeeks} weeks
+          </span>
+        </div>
+      )}
+      {weights.length >= 2 && <WeightChart points={weights} trend={trend} />}
+      {latest && allWeights.length < 2 && isMe && (
+        <p className="status-text small muted spaced-sm">Log your weight in another week to start a trend line.</p>
+      )}
+      {latest && allWeights.length >= 2 && weights.length < 2 && (
+        <p className="status-text small muted spaced-sm">No weigh-ins in this range.</p>
+      )}
+      {hasOlder && (
+        <div className="segmented weight-range" role="group" aria-label="Chart range">
+          {RANGES.map((r) => (
+            <button key={r.key} type="button" className={r.key === range ? "seg-btn selected" : "seg-btn"} onClick={() => setRange(r.key)}>
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {isMe && (
         <div className="checkin">
@@ -317,9 +391,10 @@ function GroupForm({ group, form, weekStart, foodAverages, onSaved, onClose }) {
   );
 }
 
-// Weekly weight, oldest → newest. A single series, so no legend: the card
-// title names it. Hover/tap a point to read its value.
-function WeightChart({ points }) {
+// Weekly weight, oldest → newest, placed on real dates. A single series, so
+// no legend: the card title names it. The dashed line is the fitted trend.
+// Hover/tap a point to read its value.
+function WeightChart({ points, trend }) {
   const [active, setActive] = useState(null);
   const W = 300;
   const H = 84;
@@ -333,7 +408,13 @@ function WeightChart({ points }) {
     min = mid - 0.5;
     max = mid + 0.5;
   }
-  const x = (i) => PAD_X + (i * (W - PAD_X * 2)) / (points.length - 1);
+  if (trend) {
+    min = Math.min(min, trend.start, trend.end);
+    max = Math.max(max, trend.start, trend.end);
+  }
+  const span = Math.max(1, daysBetween(points[0].week_start, points[points.length - 1].week_start));
+  const xDay = (day) => PAD_X + (day * (W - PAD_X * 2)) / span;
+  const x = (i) => xDay(daysBetween(points[0].week_start, points[i].week_start));
   const y = (v) => PAD_Y + ((max - v) * (H - PAD_Y * 2)) / (max - min);
   const path = vals.map((v, i) => (i === 0 ? "M" : "L") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
   const shown = active ?? points.length - 1;
@@ -344,6 +425,16 @@ function WeightChart({ points }) {
         <svg viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" role="img" aria-label={"Weight over the last " + points.length + " logged weeks"}>
           <line className="weight-chart-grid" x1={0} x2={W} y1={y(max)} y2={y(max)} />
           <line className="weight-chart-grid" x1={0} x2={W} y1={y(min)} y2={y(min)} />
+          {trend && (
+            <line
+              className="weight-chart-trend"
+              x1={xDay(0)}
+              x2={xDay(span)}
+              y1={y(trend.start)}
+              y2={y(trend.end)}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
           <path className="weight-chart-line" d={path} vectorEffect="non-scaling-stroke" />
         </svg>
         {points.map((p, i) => (
