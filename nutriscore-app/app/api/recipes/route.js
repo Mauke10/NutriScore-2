@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseServer } from "../../../lib/supabase";
 import { currentPerson } from "../../../lib/auth";
 import { sumIngredients } from "../../dashboard/recipeMath";
+import { asMathIngredients, bumpFoodUse, normalizeIngredients, replaceRecipeIngredients } from "../../../lib/recipeIngredients";
 
 // GET /api/recipes?q=chicken — searches the shared recipe library by name.
 // Omit q (or leave it empty) to get the most recently used ones, handy for
@@ -42,7 +43,8 @@ export async function GET(request) {
         proteinPer100g: row.protein_per_100g,
         carbsPer100g: row.carbs_per_100g,
         fatPer100g: row.fat_per_100g,
-        fiberPer100g: row.fiber_per_100g
+        fiberPer100g: row.fiber_per_100g,
+        foodId: row.food_id
       });
     });
   }
@@ -56,12 +58,13 @@ export async function GET(request) {
 // from something the other saved.
 //
 // Two ways to send macros: pass ingredients (an array of {name, grams,
-// caloriesPer100g, proteinPer100g, carbsPer100g, fatPer100g, fiberPer100g})
-// and the totals are computed from them and cached on the recipe row; or,
+// caloriesPer100g, proteinPer100g, carbsPer100g, fatPer100g, fiberPer100g,
+// foodId?}) and the totals are computed from them and cached on the recipe row; or,
 // for a recipe that's just one fixed total (e.g. the quick "save this as a
 // recipe" tick when logging a snack, which doesn't know ingredients), omit
-// ingredients and pass calories/proteinG/carbsG/fatG/fiberG directly, same
-// as before.
+// ingredients (or send an empty list) and pass calories/proteinG/carbsG/
+// fatG/fiberG directly. An empty list also clears any old breakdown — so
+// editing a totals-only recipe never zeroes its calories.
 export async function POST(request) {
   const me = currentPerson();
   if (!me) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -78,20 +81,8 @@ export async function POST(request) {
 
   const supabase = supabaseServer();
 
-  const hasIngredients = Array.isArray(body.ingredients);
-  const ingredients = hasIngredients
-    ? body.ingredients
-        .map((ing) => ({
-          name: (ing.name || "").toString().trim(),
-          grams: numOrNull(ing.grams) ?? 0,
-          calories_per_100g: numOrNull(ing.caloriesPer100g),
-          protein_per_100g: numOrNull(ing.proteinPer100g),
-          carbs_per_100g: numOrNull(ing.carbsPer100g),
-          fat_per_100g: numOrNull(ing.fatPer100g),
-          fiber_per_100g: numOrNull(ing.fiberPer100g)
-        }))
-        .filter((ing) => ing.name)
-    : null;
+  const ingredients = normalizeIngredients(body.ingredients);
+  const hasIngredients = ingredients !== null;
 
   const row = {
     name,
@@ -100,17 +91,8 @@ export async function POST(request) {
     updated_at: new Date().toISOString()
   };
 
-  if (hasIngredients) {
-    const totals = sumIngredients(
-      ingredients.map((ing) => ({
-        grams: ing.grams,
-        caloriesPer100g: ing.calories_per_100g,
-        proteinPer100g: ing.protein_per_100g,
-        carbsPer100g: ing.carbs_per_100g,
-        fatPer100g: ing.fat_per_100g,
-        fiberPer100g: ing.fiber_per_100g
-      }))
-    );
+  if (hasIngredients && ingredients.length) {
+    const totals = sumIngredients(asMathIngredients(ingredients));
     row.calories = round1(totals.calories);
     row.protein_g = round1(totals.protein);
     row.carbs_g = round1(totals.carbs);
@@ -147,18 +129,10 @@ export async function POST(request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Ingredients replace whatever was there before (delete-then-insert is
-  // simplest for a two-person app's tiny recipe list — no ordering/id churn
-  // to worry about since the client always resends the full list).
   if (hasIngredients && recipeId) {
-    const { error: delError } = await supabase.from("recipe_ingredients").delete().eq("recipe_id", recipeId);
-    if (delError) return NextResponse.json({ error: delError.message }, { status: 500 });
-    if (ingredients.length) {
-      const { error: insError } = await supabase
-        .from("recipe_ingredients")
-        .insert(ingredients.map((ing, i) => ({ ...ing, recipe_id: recipeId, sort_order: i })));
-      if (insError) return NextResponse.json({ error: insError.message }, { status: 500 });
-    }
+    const ingError = await replaceRecipeIngredients(supabase, recipeId, ingredients);
+    if (ingError) return NextResponse.json({ error: ingError.message }, { status: 500 });
+    await bumpFoodUse(supabase, ingredients.map((ing) => ing.food_id));
   }
 
   return NextResponse.json({ ok: true, id: recipeId });

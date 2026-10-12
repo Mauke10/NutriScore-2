@@ -1,18 +1,29 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, Plus, Search, Trash2 } from "lucide-react";
 import Modal from "./Modal";
-import { sumIngredients } from "./recipeMath";
+import { scaledIngredient, sumIngredients } from "./recipeMath";
+import FoodSearch from "./FoodSearch";
 
 const blankRecipe = { id: null, name: "", meal_type: "meal", portion_note: "", ingredients: [] };
-const blankIngredient = { name: "", grams: "", caloriesPer100g: "", proteinPer100g: "", carbsPer100g: "", fatPer100g: "", fiberPer100g: "" };
+
+const MACROS = [
+  ["protein", "Protein", "P", "var(--series-martin)"],
+  ["carbs", "Carbs", "C", "var(--status-warning)"],
+  ["fat", "Fat", "F", "var(--series-laura)"],
+  ["fiber", "Fiber", "Fi", "var(--status-good)"]
+];
+
+function newKey() {
+  return Math.random().toString(36).slice(2);
+}
 
 export default function RecipesPanel({ onClose }) {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [selected, setSelected] = useState(null); // null = list view, object = detail/edit view
+  const [selected, setSelected] = useState(null); // null = list view, object = editor
   const debounceRef = useRef(null);
 
   async function load(query) {
@@ -40,16 +51,9 @@ export default function RecipesPanel({ onClose }) {
   return (
     <Modal title={selected ? (selected.id ? "Edit recipe" : "New recipe") : "Recipes"} onClose={onClose} wide>
       {!selected ? (
-        <RecipeList
-          list={list}
-          loading={loading}
-          q={q}
-          onSearch={onSearch}
-          onPick={(r) => setSelected({ ...r, ingredients: (r.ingredients || []).map(withStringFields) })}
-          onNew={() => setSelected(blankRecipe)}
-        />
+        <RecipeList list={list} loading={loading} q={q} onSearch={onSearch} onPick={setSelected} onNew={() => setSelected(blankRecipe)} />
       ) : (
-        <RecipeDetail
+        <RecipeEditor
           recipe={selected}
           onBack={() => setSelected(null)}
           onSaved={() => {
@@ -63,71 +67,141 @@ export default function RecipesPanel({ onClose }) {
 }
 
 function RecipeList({ list, loading, q, onSearch, onPick, onNew }) {
+  const searching = q.trim() !== "";
   return (
     <div>
-      <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-3-5)" }}>
-        <input type="text" value={q} onChange={(e) => onSearch(e.target.value)} placeholder="Search recipes…" style={{ flex: 1 }} />
-        <button type="button" className="primary" onClick={onNew}>
-          + New
+      <div className="recipe-toolbar">
+        <div className="recipe-search">
+          <Search size={15} strokeWidth={2} aria-hidden="true" />
+          <input type="search" value={q} onChange={(e) => onSearch(e.target.value)} placeholder="Search recipes" aria-label="Search recipes" />
+        </div>
+        <button type="button" className="primary recipe-new-btn" onClick={onNew}>
+          <Plus size={15} strokeWidth={2.2} /> New
         </button>
       </div>
-      {loading && <p className="status-text muted">Loading…</p>}
-      {!loading && list.length === 0 && <p className="status-text muted">No saved recipes yet — log something and tick "save as a recipe," or add one here.</p>}
-      <div className="recipe-list">
-        {list.map((r) => (
-          <button type="button" key={r.id} className="recipe-list-row" onClick={() => onPick(r)}>
-            <span className="recipe-list-name">{r.name}</span>
-            <span className="recipe-list-meta">
-              {r.calories != null ? Math.round(r.calories) + " kcal" : "—"} · {r.meal_type}
-              {r.protein_g != null ? " · " + Math.round(r.protein_g) + "g protein" : ""}
-              {r.ingredients && r.ingredients.length ? " · " + r.ingredients.length + " ingredient" + (r.ingredients.length === 1 ? "" : "s") : ""}
-            </span>
-          </button>
-        ))}
-      </div>
+
+      {loading && list.length === 0 && <p className="status-text muted">Loading…</p>}
+
+      {!loading && list.length === 0 && (
+        <div className="recipe-empty">
+          {searching ? (
+            <p>No recipe matches “{q.trim()}”.</p>
+          ) : (
+            <>
+              <p>No saved recipes yet. Build one from ingredients once, then log it in two taps.</p>
+              <button type="button" className="primary recipe-new-btn" onClick={onNew}>
+                <Plus size={15} strokeWidth={2.2} /> Create your first recipe
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {list.length > 0 && (
+        <div className="recipe-cards">
+          {list.map((r) => (
+            <button type="button" key={r.id} className="recipe-card" onClick={() => onPick(r)}>
+              <span className="recipe-card-main">
+                <span className="recipe-card-top">
+                  <span className="recipe-card-name">{r.name}</span>
+                  <span className={r.meal_type === "snack" ? "type-badge snack" : "type-badge meal"}>{r.meal_type === "snack" ? "Snack" : "Meal"}</span>
+                </span>
+                <span className="recipe-card-meta">
+                  P {fmt(r.protein_g)} · C {fmt(r.carbs_g)} · F {fmt(r.fat_g)}
+                  {r.ingredients && r.ingredients.length ? " · " + r.ingredients.length + (r.ingredients.length === 1 ? " ingredient" : " ingredients") : ""}
+                </span>
+                {r.portion_note && <span className="recipe-card-note">{r.portion_note}</span>}
+              </span>
+              <span className="recipe-card-cal">
+                <span className="v">{r.calories != null ? Math.round(r.calories) : "—"}</span>
+                <span className="u">kcal</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function withStringFields(ing) {
+function fmt(g) {
+  return g != null ? Math.round(g) + "g" : "—";
+}
+
+function toEditable(ing, open = false) {
+  const str = (v) => (v != null && v !== "" ? String(v) : "");
   return {
+    key: newKey(),
+    open,
     name: ing.name || "",
-    grams: ing.grams != null ? String(ing.grams) : "",
-    caloriesPer100g: ing.caloriesPer100g != null ? String(ing.caloriesPer100g) : "",
-    proteinPer100g: ing.proteinPer100g != null ? String(ing.proteinPer100g) : "",
-    carbsPer100g: ing.carbsPer100g != null ? String(ing.carbsPer100g) : "",
-    fatPer100g: ing.fatPer100g != null ? String(ing.fatPer100g) : "",
-    fiberPer100g: ing.fiberPer100g != null ? String(ing.fiberPer100g) : ""
+    grams: str(ing.grams),
+    caloriesPer100g: str(ing.caloriesPer100g),
+    proteinPer100g: str(ing.proteinPer100g),
+    carbsPer100g: str(ing.carbsPer100g),
+    fatPer100g: str(ing.fatPer100g),
+    fiberPer100g: str(ing.fiberPer100g),
+    foodId: ing.foodId || null
   };
 }
 
-function RecipeDetail({ recipe, onBack, onSaved }) {
+function RecipeEditor({ recipe, onBack, onSaved }) {
   const [name, setName] = useState(recipe.name || "");
-  const [mealType, setMealType] = useState(recipe.meal_type || "meal");
+  const [mealType, setMealType] = useState(recipe.meal_type === "snack" ? "snack" : "meal");
   const [portionNote, setPortionNote] = useState(recipe.portion_note || "");
-  const [ingredients, setIngredients] = useState(recipe.ingredients && recipe.ingredients.length ? recipe.ingredients : [{ ...blankIngredient }]);
+  const [ingredients, setIngredients] = useState(() => (recipe.ingredients || []).map((ing) => toEditable(ing)));
+  // Recipes saved without a breakdown (the quick "save as a recipe" tick on
+  // the log form) only have totals — those stay editable directly until
+  // ingredients are added.
+  const [fixed, setFixed] = useState(() => ({
+    calories: recipe.calories != null ? String(Math.round(recipe.calories)) : "",
+    protein: recipe.protein_g != null ? String(Math.round(recipe.protein_g)) : "",
+    carbs: recipe.carbs_g != null ? String(Math.round(recipe.carbs_g)) : "",
+    fat: recipe.fat_g != null ? String(Math.round(recipe.fat_g)) : "",
+    fiber: recipe.fiber_g != null ? String(Math.round(recipe.fiber_g)) : ""
+  }));
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const focusKeyRef = useRef(null); // row whose first field should take focus when it mounts
 
-  const totals = sumIngredients(ingredients);
+  const hasIngredients = ingredients.length > 0;
+  const totals = hasIngredients
+    ? sumIngredients(ingredients)
+    : { calories: num(fixed.calories), protein: num(fixed.protein), carbs: num(fixed.carbs), fat: num(fixed.fat), fiber: num(fixed.fiber) };
+  const totalGrams = ingredients.reduce((sum, ing) => sum + num(ing.grams), 0);
 
-  function setIngredientField(idx, key, value) {
-    setIngredients((rows) => rows.map((row, i) => (i === idx ? { ...row, [key]: value } : row)));
+  function updateRow(key, patch) {
+    focusKeyRef.current = null; // only a freshly added row grabs focus, not one reopened later
+    setIngredients((rows) => rows.map((row) => (row.key === key ? { ...row, ...patch } : row)));
   }
 
-  function addIngredient() {
-    setIngredients((rows) => [...rows, { ...blankIngredient }]);
+  function removeRow(key) {
+    setIngredients((rows) => rows.filter((row) => row.key !== key));
   }
 
-  function removeIngredient(idx) {
-    setIngredients((rows) => rows.filter((_, i) => i !== idx));
+  function addFood(ing) {
+    const row = toEditable(ing);
+    focusKeyRef.current = row.key;
+    setIngredients((rows) => [...rows, row]);
+  }
+
+  function addManual() {
+    const row = toEditable({ grams: "100" }, true);
+    focusKeyRef.current = row.key;
+    setIngredients((rows) => [...rows, row]);
   }
 
   async function save(e) {
     e.preventDefault();
     if (!name.trim()) {
-      setError("Needs a name.");
+      setError("Give it a name.");
+      return;
+    }
+    const unnamed = ingredients.find((ing) => !ing.name.trim());
+    if (unnamed) {
+      updateRow(unnamed.key, { open: true });
+      setError("One ingredient has no name.");
       return;
     }
     setSaving(true);
@@ -141,7 +215,13 @@ function RecipeDetail({ recipe, onBack, onSaved }) {
           name,
           mealType,
           portionNote,
-          ingredients: ingredients.filter((ing) => ing.name.trim())
+          ingredients,
+          // Only used when there are no ingredients (see /api/recipes).
+          calories: fixed.calories,
+          proteinG: fixed.protein,
+          carbsG: fixed.carbs,
+          fatG: fixed.fat,
+          fiberG: fixed.fiber
         })
       });
       const data = await res.json();
@@ -155,109 +235,214 @@ function RecipeDetail({ recipe, onBack, onSaved }) {
   }
 
   async function remove() {
-    if (!recipe.id) return;
     setDeleting(true);
+    setError("");
     try {
-      await fetch("/api/recipes?id=" + recipe.id, { method: "DELETE" });
+      const res = await fetch("/api/recipes?id=" + recipe.id, { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json()).error || "Delete failed");
       onSaved();
-    } finally {
+    } catch (err) {
+      setError(err.message);
       setDeleting(false);
     }
   }
 
   return (
-    <div>
-      <button type="button" className="ghost" onClick={onBack} style={{ marginBottom: "var(--space-3-5)", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
-        <ChevronLeft strokeWidth={2} size={16} /> Back to recipes
+    <form onSubmit={save} className="recipe-editor">
+      <button type="button" className="recipe-back" onClick={onBack}>
+        <ChevronLeft strokeWidth={2} size={16} /> All recipes
       </button>
-      <form onSubmit={save} className="section-form">
-        <div className="field wide">
-          <label>Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Lõhe ja riis" />
+
+      <input
+        className="recipe-name-input"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Recipe name, e.g. Lõhe ja riis"
+        aria-label="Recipe name"
+        autoFocus={!recipe.id}
+      />
+
+      <div className="recipe-meta-row">
+        <div className="segmented" role="group" aria-label="Logged as">
+          <button type="button" className={mealType === "meal" ? "seg-btn selected" : "seg-btn"} onClick={() => setMealType("meal")}>
+            Meal
+          </button>
+          <button type="button" className={mealType === "snack" ? "seg-btn selected" : "seg-btn"} onClick={() => setMealType("snack")}>
+            Snack
+          </button>
         </div>
-        <div className="field wide">
-          <div className="segmented">
-            <button type="button" className={mealType === "meal" ? "seg-btn selected" : "seg-btn"} onClick={() => setMealType("meal")}>
-              Meal
-            </button>
-            <button type="button" className={mealType === "snack" ? "seg-btn selected" : "seg-btn"} onClick={() => setMealType("snack")}>
-              Snack
-            </button>
-          </div>
+        <input
+          className="recipe-portion-input"
+          value={portionNote}
+          onChange={(e) => setPortionNote(e.target.value)}
+          placeholder="Portion note — e.g. 1 mealprep box"
+          aria-label="Portion note"
+        />
+      </div>
+
+      <section className="recipe-section">
+        <div className="recipe-section-head">
+          <h4>Ingredients</h4>
+          {hasIngredients && (
+            <span className="muted">
+              {ingredients.length} · {Math.round(totalGrams)} g
+            </span>
+          )}
         </div>
 
-        <div className="field wide">
-          <label>Ingredients — grams &amp; macros per 100g</label>
-          <div className="ingredient-editor">
-            {ingredients.map((ing, idx) => (
-              <div className="ingredient-row" key={idx}>
-                <input
-                  className="ingredient-name"
-                  value={ing.name}
-                  onChange={(e) => setIngredientField(idx, "name", e.target.value)}
-                  placeholder="e.g. Lõhe"
-                />
-                <div className="ingredient-nums">
-                  <label>
-                    <span>Grams</span>
-                    <input type="number" value={ing.grams} onChange={(e) => setIngredientField(idx, "grams", e.target.value)} placeholder="100" />
-                  </label>
-                  <label>
-                    <span>kcal/100g</span>
-                    <input type="number" value={ing.caloriesPer100g} onChange={(e) => setIngredientField(idx, "caloriesPer100g", e.target.value)} placeholder="208" />
-                  </label>
-                  <label>
-                    <span>P/100g</span>
-                    <input type="number" value={ing.proteinPer100g} onChange={(e) => setIngredientField(idx, "proteinPer100g", e.target.value)} placeholder="20" />
-                  </label>
-                  <label>
-                    <span>C/100g</span>
-                    <input type="number" value={ing.carbsPer100g} onChange={(e) => setIngredientField(idx, "carbsPer100g", e.target.value)} placeholder="0" />
-                  </label>
-                  <label>
-                    <span>F/100g</span>
-                    <input type="number" value={ing.fatPer100g} onChange={(e) => setIngredientField(idx, "fatPer100g", e.target.value)} placeholder="13" />
-                  </label>
-                  <label>
-                    <span>Fiber/100g</span>
-                    <input type="number" value={ing.fiberPer100g} onChange={(e) => setIngredientField(idx, "fiberPer100g", e.target.value)} placeholder="2" />
-                  </label>
-                </div>
-                <button type="button" className="ingredient-remove" onClick={() => removeIngredient(idx)} aria-label="Remove ingredient">
-                  <Trash2 size={14} strokeWidth={2} />
-                </button>
-              </div>
+        <FoodSearch id="recipe-food-search" onPick={addFood} placeholder="Search foods to add — e.g. riis, kana" />
+
+        {hasIngredients && (
+          <ul className="recipe-ings">
+            {ingredients.map((ing) => (
+              <IngredientRow
+                key={ing.key}
+                ing={ing}
+                autoFocus={ing.key === focusKeyRef.current}
+                onChange={(patch) => updateRow(ing.key, patch)}
+                onRemove={() => removeRow(ing.key)}
+              />
             ))}
-            <button type="button" className="ghost ingredient-add" onClick={addIngredient}>
-              <Plus size={14} strokeWidth={2} /> Add ingredient
-            </button>
-          </div>
-        </div>
+          </ul>
+        )}
 
-        <div className="field wide recipe-totals-bar">
-          <span>Total</span>
-          <strong>{Math.round(totals.calories)} kcal</strong>
-          <span className="muted">
-            P {Math.round(totals.protein)}g · C {Math.round(totals.carbs)}g · F {Math.round(totals.fat)}g · Fiber {Math.round(totals.fiber)}g
+        <button type="button" className="recipe-add-manual" onClick={addManual}>
+          <Plus size={14} strokeWidth={2} /> Add an ingredient manually
+        </button>
+
+        {!hasIngredients && (
+          <div className="recipe-fixed">
+            <p className="recipe-fixed-hint">
+              {recipe.id && recipe.calories != null
+                ? "This recipe has totals but no ingredient list. Edit them here, or add ingredients above to have them calculated."
+                : "No ingredient list? Enter the recipe's totals instead."}
+            </p>
+            <div className="recipe-num-grid">
+              <NumField label="kcal" value={fixed.calories} onChange={(v) => setFixed((f) => ({ ...f, calories: v }))} />
+              {MACROS.map(([k, label]) => (
+                <NumField key={k} label={label + " (g)"} value={fixed[k]} onChange={(v) => setFixed((f) => ({ ...f, [k]: v }))} />
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <div className="recipe-footer">
+        <div className="recipe-footer-totals" aria-live="polite">
+          <span className="recipe-footer-kcal">
+            <strong>{Math.round(totals.calories)}</strong> kcal
+          </span>
+          <span className="recipe-footer-macros">
+            {MACROS.map(([k, label, short, color]) => (
+              <span key={k} className="recipe-footer-macro" title={label}>
+                <span className="m-dot" style={{ background: color }} />
+                {short} {Math.round(totals[k])}g
+              </span>
+            ))}
           </span>
         </div>
-
-        <div className="field wide">
-          <label>Portion note</label>
-          <input value={portionNote} onChange={(e) => setPortionNote(e.target.value)} placeholder="e.g. 1 mealprep container" />
-        </div>
-        <div className="form-actions">
+        <div className="recipe-footer-actions">
+          {recipe.id &&
+            (confirmDelete ? (
+              <span className="recipe-confirm">
+                Delete?
+                <button type="button" className="danger" onClick={remove} disabled={deleting}>
+                  {deleting ? "Deleting…" : "Yes, delete"}
+                </button>
+                <button type="button" className="ghost" onClick={() => setConfirmDelete(false)}>
+                  Keep
+                </button>
+              </span>
+            ) : (
+              <button type="button" className="danger" onClick={() => setConfirmDelete(true)} aria-label="Delete recipe">
+                <Trash2 strokeWidth={2} size={14} /> Delete
+              </button>
+            ))}
           <button type="submit" className="primary" disabled={saving}>
             {saving ? "Saving…" : "Save recipe"}
           </button>
-          {recipe.id && (
-            <button type="button" className="danger" onClick={remove} disabled={deleting} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
-              <Trash2 strokeWidth={2} size={14} /> {deleting ? "Removing…" : "Delete"}
-            </button>
-          )}
-          {error && <span className="error-text inline">{error}</span>}
         </div>
-      </form>
-    </div>
+        {error && <div className="error-text inline recipe-footer-error">{error}</div>}
+      </div>
+    </form>
   );
+}
+
+// One ingredient: name, grams and what that amount comes to. The per-100g
+// numbers live behind the chevron — picked foods already have them filled,
+// so most of the time you only ever touch grams.
+function IngredientRow({ ing, autoFocus, onChange, onRemove }) {
+  const kcal = Math.round(scaledIngredient(ing).calories);
+  const missingValues = ing.caloriesPer100g === "";
+  const per100 = [
+    ["caloriesPer100g", "kcal"],
+    ["proteinPer100g", "Protein"],
+    ["carbsPer100g", "Carbs"],
+    ["fatPer100g", "Fat"],
+    ["fiberPer100g", "Fiber"]
+  ];
+
+  return (
+    <li className={ing.open ? "recipe-ing is-open" : "recipe-ing"}>
+      <div className="recipe-ing-line">
+        <button
+          type="button"
+          className="recipe-ing-toggle"
+          onClick={() => onChange({ open: !ing.open })}
+          aria-expanded={ing.open}
+          aria-label={(ing.open ? "Hide" : "Show") + " values per 100g for " + (ing.name || "ingredient")}
+        >
+          <span className="recipe-ing-name">{ing.name || <span className="muted">Unnamed ingredient</span>}</span>
+          {missingValues ? (
+            <span className="recipe-ing-sub warn">Add values per 100g</span>
+          ) : (
+            <span className="recipe-ing-sub">
+              <strong>{kcal} kcal</strong> · {Math.round(num(ing.caloriesPer100g))} / 100g
+            </span>
+          )}
+          <ChevronDown size={15} strokeWidth={2} className="recipe-ing-chevron" aria-hidden="true" />
+        </button>
+        <label className="recipe-ing-grams">
+          <input
+            type="number"
+            inputMode="decimal"
+            value={ing.grams}
+            onChange={(e) => onChange({ grams: e.target.value })}
+            onFocus={(e) => e.target.select()}
+            autoFocus={autoFocus && !ing.open}
+            aria-label={(ing.name || "Ingredient") + " grams"}
+          />
+          <span>g</span>
+        </label>
+        <button type="button" className="ingredient-remove" onClick={onRemove} aria-label={"Remove " + (ing.name || "ingredient")}>
+          <Trash2 size={14} strokeWidth={2} />
+        </button>
+      </div>
+      {ing.open && (
+        <div className="recipe-ing-details">
+          <input value={ing.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="Ingredient name" aria-label="Ingredient name" autoFocus={autoFocus} />
+          <div className="recipe-num-grid">
+            {per100.map(([key, label]) => (
+              <NumField key={key} label={label + " /100g"} value={ing[key]} onChange={(v) => onChange({ [key]: v })} />
+            ))}
+          </div>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function NumField({ label, value, onChange }) {
+  return (
+    <label className="recipe-num">
+      <span>{label}</span>
+      <input type="number" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />
+    </label>
+  );
+}
+
+function num(v) {
+  if (v === null || v === undefined || v === "") return 0;
+  const n = Number(v);
+  return Number.isNaN(n) ? 0 : n;
 }

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, ListPlus } from "lucide-react";
 import { shortDateLabel, todayStr } from "./utils";
 import RecipePicker from "./RecipePicker";
-import { sumIngredients } from "./recipeMath";
+import { scaledIngredient, sumIngredients } from "./recipeMath";
+import FoodSearch from "./FoodSearch";
 import WeekCalorieTrend from "./WeekCalorieTrend";
 import Modal from "./Modal";
 
@@ -24,7 +25,8 @@ const emptyForm = {
   logDate: todayStr(),
   mealType: "meal",
   recipeId: "",
-  ingredients: [], // set when logging from a saved recipe — lets grams be tweaked per log ("only had 150g of the rice")
+  ingredients: [], // from a saved recipe or built from the food database — grams can be tweaked per log ("only had 150g of the rice")
+  buildMode: false, // "Build from ingredients" open: shows the food search even before anything's been added
   saveAsRecipe: false
 };
 
@@ -39,6 +41,10 @@ const emptyEditForm = {
   logDate: todayStr()
 };
 
+function newKey() {
+  return Math.random().toString(36).slice(2);
+}
+
 export default function SnackSection({ personId, isMe, snacks, refreshSnacks, calorieTarget, proteinTarget, registerCameraTrigger }) {
   const [form, setForm] = useState(emptyForm);
   const [photoFile, setPhotoFile] = useState(null);
@@ -48,6 +54,7 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
   const [error, setError] = useState("");
   const [assumption, setAssumption] = useState("");
   const fileInputRef = useRef(null);
+  const justAddedRef = useRef(null); // key of the ingredient just added, so its grams field gets focus
 
   // Editing an already-logged entry (fixing a typo'd number, or "that was a
   // meal, not a snack") — separate from the add-new form above, opened in
@@ -94,13 +101,15 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
 
   function pickRecipe(recipe) {
     const ingredients = (recipe.ingredients || []).map((ing) => ({
+      key: newKey(),
       name: ing.name,
       grams: ing.grams != null ? String(ing.grams) : "",
       caloriesPer100g: ing.caloriesPer100g,
       proteinPer100g: ing.proteinPer100g,
       carbsPer100g: ing.carbsPer100g,
       fatPer100g: ing.fatPer100g,
-      fiberPer100g: ing.fiberPer100g
+      fiberPer100g: ing.fiberPer100g,
+      foodId: ing.foodId
     }));
     setForm((f) => {
       const next = {
@@ -124,6 +133,7 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
   // whenever a picked recipe's ingredients (or their grams) change, so the
   // macro fields always reflect "however much I actually ate."
   function withRecomputedTotals(f) {
+    if (!f.ingredients.length) return { ...f, calories: "", proteinG: "", carbsG: "", fatG: "", fiberG: "" };
     const totals = sumIngredients(f.ingredients);
     return {
       ...f,
@@ -140,6 +150,16 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
       const ingredients = f.ingredients.map((ing, i) => (i === idx ? { ...ing, grams } : ing));
       return withRecomputedTotals({ ...f, ingredients });
     });
+  }
+
+  function addIngredient(ing) {
+    const key = newKey();
+    justAddedRef.current = key;
+    setForm((f) => withRecomputedTotals({ ...f, buildMode: true, ingredients: [...f.ingredients, { ...ing, key }] }));
+  }
+
+  function removeIngredient(idx) {
+    setForm((f) => withRecomputedTotals({ ...f, ingredients: f.ingredients.filter((_, i) => i !== idx) }));
   }
 
   async function estimateFromPhoto() {
@@ -162,7 +182,8 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
         fatG: data.fatG != null ? String(Math.round(data.fatG)) : f.fatG,
         fiberG: data.fiberG != null ? String(Math.round(data.fiberG)) : f.fiberG,
         recipeId: "",
-        ingredients: []
+        ingredients: [],
+        buildMode: false
       }));
       if (data.assumptions) setAssumption(data.assumptions + (data.confidence ? " (" + data.confidence + " confidence)" : ""));
     } catch (err) {
@@ -174,15 +195,17 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
 
   async function submit(e) {
     e.preventDefault();
-    if (!form.description.trim() || form.calories === "") {
-      setError("Need at least a description and a calorie number.");
+    // Built from ingredients without typing a name — call it what's in it.
+    const description = form.description.trim() || form.ingredients.map((ing) => ing.name.split(",")[0]).join(" + ");
+    if (!description || form.calories === "") {
+      setError(form.buildMode ? "Add at least one ingredient." : "Need at least a description and a calorie number.");
       return;
     }
     setSaving(true);
     setError("");
     try {
       const fd = new FormData();
-      fd.append("description", form.description);
+      fd.append("description", description);
       fd.append("calories", form.calories);
       fd.append("proteinG", form.proteinG);
       fd.append("carbsG", form.carbsG);
@@ -193,6 +216,7 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
       fd.append("mealType", form.mealType);
       if (form.recipeId) fd.append("recipeId", form.recipeId);
       if (form.saveAsRecipe) fd.append("saveAsRecipe", "1");
+      if (form.ingredients.length) fd.append("ingredients", JSON.stringify(form.ingredients));
       if (photoFile) fd.append("photo", photoFile);
       const res = await fetch("/api/snacks", { method: "POST", body: fd });
       const data = await res.json();
@@ -388,25 +412,38 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
               value={form.description}
               onChange={(v) => setField("description", v)}
               onPick={pickRecipe}
-              placeholder={form.mealType === "meal" ? "e.g. chicken curry" : "e.g. protein bar + banana"}
+              placeholder={form.buildMode ? "Name (optional) — e.g. lõhe ja riis" : form.mealType === "meal" ? "e.g. chicken curry" : "e.g. protein bar + banana"}
             />
+            {!form.buildMode && form.ingredients.length === 0 && (
+              <button type="button" className="ghost build-ingredients-btn" onClick={() => setField("buildMode", true)}>
+                <ListPlus size={15} strokeWidth={2} /> Build from ingredients
+              </button>
+            )}
           </div>
-          {form.ingredients.length > 0 && (
+          {(form.buildMode || form.ingredients.length > 0) && (
             <div className="field wide">
-              <label>Grams actually eaten</label>
+              <label htmlFor={"food-" + personId}>{form.ingredients.length ? "Ingredients — grams actually eaten" : "Ingredients"}</label>
               <div className="ingredient-log-editor">
                 {form.ingredients.map((ing, idx) => (
-                  <div className="ingredient-log-row" key={ing.name + idx}>
+                  <div className="ingredient-log-row" key={ing.key || ing.name + idx}>
                     <span className="ingredient-log-name">{ing.name}</span>
+                    <span className="ingredient-log-kcal">{Math.round(scaledIngredient(ing).calories)} kcal</span>
                     <input
                       type="number"
+                      inputMode="decimal"
                       value={ing.grams}
                       onChange={(e) => setIngredientGrams(idx, e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      autoFocus={ing.key != null && ing.key === justAddedRef.current}
                       aria-label={ing.name + " grams"}
                     />
                     <span className="ingredient-log-unit">g</span>
+                    <button type="button" className="ingredient-remove" onClick={() => removeIngredient(idx)} aria-label={"Remove " + ing.name}>
+                      <Trash2 size={14} strokeWidth={2} />
+                    </button>
                   </div>
                 ))}
+                <FoodSearch id={"food-" + personId} onPick={addIngredient} placeholder={form.ingredients.length ? "Add another ingredient…" : undefined} />
               </div>
             </div>
           )}

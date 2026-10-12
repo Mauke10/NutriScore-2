@@ -2,6 +2,7 @@
 -- Run this once in Supabase: Project -> SQL Editor -> New query -> paste -> Run.
 
 create extension if not exists "pgcrypto";
+create extension if not exists pg_trgm with schema extensions; -- fast "contains" search on foods
 
 -- The two (and only two, for now) people this app tracks.
 create table if not exists people (
@@ -71,6 +72,44 @@ create table if not exists recipes (
 );
 create index if not exists recipes_name_idx on recipes (lower(name));
 
+-- Food database for ingredient-based logging: per-100g macros, searched by
+-- the ingredient builder in the log form and the recipe editor. Seeded from
+-- Fineli (THL, CC BY 4.0) by seed_009_fineli_foods.sql with Estonian
+-- names/synonyms; source = 'custom' rows are foods you added yourselves.
+create table if not exists foods (
+  id uuid primary key default gen_random_uuid(),
+  source text not null default 'custom', -- 'fineli' | 'custom'
+  source_id text,                        -- Fineli FOODID when source = 'fineli'
+  name text not null,                    -- display name: Estonian when we have one, else English
+  name_en text,
+  name_fi text,
+  aliases text[] not null default '{}',  -- extra search words ("kana", "riis", "skyr")
+  search_text text not null default '',  -- lowercased, accent-stripped names + aliases; written by the app/seed (lib/foodText.js)
+  kind text,                             -- 'food' (an ingredient) | 'dish' (a Fineli mixed dish)
+  calories_per_100g numeric,
+  protein_per_100g numeric,
+  carbs_per_100g numeric,
+  fat_per_100g numeric,
+  fiber_per_100g numeric,
+  use_count integer not null default 0,  -- how often either of you has logged it; most-used float to the top of search
+  last_used_at timestamptz,
+  created_by text references people(id),
+  created_at timestamptz not null default now(),
+  unique (source, source_id)
+);
+create index if not exists foods_search_trgm_idx on foods using gin (search_text extensions.gin_trgm_ops);
+
+-- Called after logging/saving with ingredients, to rank your usual foods first.
+create or replace function bump_food_use(food_ids uuid[])
+returns void
+language sql
+security invoker
+set search_path = public
+as $$
+  update foods set use_count = use_count + 1, last_used_at = now() where id = any(food_ids);
+$$;
+revoke execute on function bump_food_use(uuid[]) from public, anon, authenticated;
+
 -- Optional per-ingredient breakdown for a recipe (name, grams, macros per
 -- 100g). When present, recipes.calories/protein_g/carbs_g/fat_g is kept as a
 -- cached total computed from these; logging a recipe can then adjust any
@@ -85,6 +124,7 @@ create table if not exists recipe_ingredients (
   carbs_per_100g numeric,
   fat_per_100g numeric,
   fiber_per_100g numeric,
+  food_id uuid references foods(id) on delete set null, -- which food it was picked from; macros are still copied so old recipes never change
   sort_order int not null default 0
 );
 create index if not exists recipe_ingredients_recipe_idx on recipe_ingredients (recipe_id);
@@ -200,3 +240,5 @@ alter table recipes enable row level security;
 alter table recipe_ingredients enable row level security;
 alter table daily_notes enable row level security;
 alter table training_plan enable row level security;
+alter table training_sessions enable row level security;
+alter table foods enable row level security;
