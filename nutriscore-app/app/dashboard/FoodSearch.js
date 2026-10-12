@@ -198,9 +198,9 @@ function CustomFoodForm({ draft, onCancel, onSaved }) {
       <div className="custom-food-title">New food — values per 100g, from the packaging</div>
       <input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Name, e.g. Profeel metsmarja jook" aria-label="Food name" />
       <input value={f.aliases} onChange={(e) => set("aliases", e.target.value)} placeholder="Other search words, comma-separated (optional)" aria-label="Search words" />
-      <div className="ingredient-nums custom-food-nums">
+      <div className="recipe-num-grid">
         {nums.map(([key, label]) => (
-          <label key={key}>
+          <label key={key} className="recipe-num">
             <span>{label}</span>
             <input type="number" inputMode="decimal" value={f[key]} onChange={(e) => set(key, e.target.value)} />
           </label>

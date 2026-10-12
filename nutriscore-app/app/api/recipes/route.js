@@ -62,8 +62,9 @@ export async function GET(request) {
 // foodId?}) and the totals are computed from them and cached on the recipe row; or,
 // for a recipe that's just one fixed total (e.g. the quick "save this as a
 // recipe" tick when logging a snack, which doesn't know ingredients), omit
-// ingredients and pass calories/proteinG/carbsG/fatG/fiberG directly, same
-// as before.
+// ingredients (or send an empty list) and pass calories/proteinG/carbsG/
+// fatG/fiberG directly. An empty list also clears any old breakdown — so
+// editing a totals-only recipe never zeroes its calories.
 export async function POST(request) {
   const me = currentPerson();
   if (!me) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -90,7 +91,7 @@ export async function POST(request) {
     updated_at: new Date().toISOString()
   };
 
-  if (hasIngredients) {
+  if (hasIngredients && ingredients.length) {
     const totals = sumIngredients(asMathIngredients(ingredients));
     row.calories = round1(totals.calories);
     row.protein_g = round1(totals.protein);
