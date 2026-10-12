@@ -200,3 +200,4 @@ alter table recipes enable row level security;
 alter table recipe_ingredients enable row level security;
 alter table daily_notes enable row level security;
 alter table training_plan enable row level security;
+alter table training_sessions enable row level security;
