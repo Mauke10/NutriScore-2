@@ -23,6 +23,9 @@ import CompareColumns from "./CompareColumns";
 import { DEFAULT_COLOR } from "./utils";
 
 const THEME_KEY = "nutriscore-theme";
+// Mobile shows the current tab's name as the page title (desktop shows
+// everything at once, so it keeps the app name). Keep in sync with BottomNav.
+const TAB_TITLES = { today: "Today", training: "Training", calendar: "Calendar", body: "Body", compete: "Compete" };
 
 export default function DashboardClient({ me }) {
   const router = useRouter();
@@ -105,9 +108,13 @@ export default function DashboardClient({ me }) {
             onOpenSettings={() => setOpenPanel("settings")}
             onOpenRecipes={() => setOpenPanel("recipes")}
             onOpenColour={() => setOpenPanel("colour")}
+            onLogout={logout}
           />
           <div>
-            <h1>Nutriscore</h1>
+            <h1>
+              <span className="only-desktop">Nutriscore</span>
+              <span className="only-mobile">{TAB_TITLES[activeTab]}</span>
+            </h1>
             <TodayPlanStrip />
           </div>
         </div>
@@ -152,10 +159,13 @@ export default function DashboardClient({ me }) {
         />
       )}
 
-      {!loading && <Competition martinWeekly={martin.weekly} lauraWeekly={laura.weekly} />}
-
       {/* Desktop: both columns side by side, always visible above 880px */}
       <div className="dashboard desktop-dashboard">
+        {!loading && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <Competition martinWeekly={martin.weekly} lauraWeekly={laura.weekly} />
+          </div>
+        )}
         <PersonColumn personId="martin" displayName="Martin" seriesVar="--series-martin" isMe={me === "martin"} data={martin} />
         <PersonColumn personId="laura" displayName="Laura" seriesVar="--series-laura" isMe={me === "laura"} data={laura} />
         <div style={{ gridColumn: "1 / -1" }}>
@@ -199,10 +209,13 @@ export default function DashboardClient({ me }) {
           <TrainingPlanCalendar me={me} />
         </div>
         <div hidden={activeTab !== "body"}>
-          <WeeklySection personId={me} isMe weekly={myData.weekly} refreshWeekly={myData.refreshWeekly} />
+          <WeeklySection personId={me} isMe weekly={myData.weekly} refreshWeekly={myData.refreshWeekly} snacks={myData.snacks} />
           <BloodworkSection personId={me} isMe bloodwork={myData.bloodwork} refreshBloodwork={myData.refreshBloodwork} />
         </div>
         <div hidden={activeTab !== "compete"}>
+          {/* The head-to-head lives here on a phone rather than above every
+              tab, where it pushed each tab's own content below the fold. */}
+          {!loading && <Competition martinWeekly={martin.weekly} lauraWeekly={laura.weekly} />}
           <Whiteboard me={me} />
           {!loading && <CompareColumns martin={martin} laura={laura} />}
         </div>

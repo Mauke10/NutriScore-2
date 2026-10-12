@@ -46,7 +46,7 @@ export default function PersonColumn({ personId, displayName, seriesVar, isMe, d
         proteinTarget={proteinTarget}
         refreshTarget={refreshTarget}
       />
-      <WeeklySection personId={personId} isMe={isMe} weekly={weekly} refreshWeekly={refreshWeekly} />
+      <WeeklySection personId={personId} isMe={isMe} weekly={weekly} refreshWeekly={refreshWeekly} snacks={snacks} />
       <TrainingSection
         personId={personId}
         isMe={isMe}
