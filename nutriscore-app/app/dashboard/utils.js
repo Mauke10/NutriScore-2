@@ -22,10 +22,23 @@ export function shortDateLabel(ymd) {
   const y = new Date();
   y.setDate(y.getDate() - 1);
   if (ymd === localDateStr(y)) return "Yesterday";
+  return dayMonthLabel(ymd);
+}
+
+// "7 Oct" (or "7 Oct 2025" outside the current year) for a YYYY-MM-DD date,
+// parsed as a local date.
+export function dayMonthLabel(ymd) {
+  if (!ymd) return "";
   const [yr, mo, da] = ymd.split("-").map(Number);
   const d = new Date(yr, mo - 1, da);
   const sameYear = yr === new Date().getFullYear();
   return d.toLocaleDateString("en-GB", sameYear ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" });
+}
+
+// Monday of the week before/after a YYYY-MM-DD Monday.
+export function shiftWeek(ymd, weeks) {
+  const [yr, mo, da] = ymd.split("-").map(Number);
+  return localDateStr(new Date(yr, mo - 1, da + 7 * weeks));
 }
 
 export function mondayOf(d) {

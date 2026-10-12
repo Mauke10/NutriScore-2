@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Menu, Target, Settings, BookOpen, Palette } from "lucide-react";
+import { Menu, Target, Settings, BookOpen, Palette, LogOut } from "lucide-react";
 
-export default function TopMenu({ onOpenGoals, onOpenSettings, onOpenRecipes, onOpenColour }) {
+export default function TopMenu({ onOpenGoals, onOpenSettings, onOpenRecipes, onOpenColour, onLogout }) {
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
 
@@ -65,6 +65,19 @@ export default function TopMenu({ onOpenGoals, onOpenSettings, onOpenRecipes, on
           >
             <Palette strokeWidth={2} />
             Colour
+          </button>
+          {/* On a phone the "Signed in as … / Log out" row is hidden to give
+              the tab its space back, so logging out lives here instead. */}
+          <button
+            type="button"
+            className="dropdown-item only-mobile-flex"
+            onClick={() => {
+              setOpen(false);
+              onLogout();
+            }}
+          >
+            <LogOut strokeWidth={2} />
+            Log out
           </button>
         </div>
       )}
