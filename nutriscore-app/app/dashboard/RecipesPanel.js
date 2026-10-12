@@ -65,14 +65,14 @@ export default function RecipesPanel({ onClose }) {
 function RecipeList({ list, loading, q, onSearch, onPick, onNew }) {
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-3-5)" }}>
         <input type="text" value={q} onChange={(e) => onSearch(e.target.value)} placeholder="Search recipes…" style={{ flex: 1 }} />
         <button type="button" className="primary" onClick={onNew}>
           + New
         </button>
       </div>
-      {loading && <p style={{ color: "var(--text-muted)", fontSize: 12.5 }}>Loading…</p>}
-      {!loading && list.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 12.5 }}>No saved recipes yet — log something and tick "save as a recipe," or add one here.</p>}
+      {loading && <p className="status-text muted">Loading…</p>}
+      {!loading && list.length === 0 && <p className="status-text muted">No saved recipes yet — log something and tick "save as a recipe," or add one here.</p>}
       <div className="recipe-list">
         {list.map((r) => (
           <button type="button" key={r.id} className="recipe-list-row" onClick={() => onPick(r)}>
@@ -167,7 +167,7 @@ function RecipeDetail({ recipe, onBack, onSaved }) {
 
   return (
     <div>
-      <button type="button" className="ghost" onClick={onBack} style={{ marginBottom: 14, display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <button type="button" className="ghost" onClick={onBack} style={{ marginBottom: "var(--space-3-5)", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
         <ChevronLeft strokeWidth={2} size={16} /> Back to recipes
       </button>
       <form onSubmit={save} className="section-form">
@@ -251,11 +251,11 @@ function RecipeDetail({ recipe, onBack, onSaved }) {
             {saving ? "Saving…" : "Save recipe"}
           </button>
           {recipe.id && (
-            <button type="button" className="danger" onClick={remove} disabled={deleting} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <button type="button" className="danger" onClick={remove} disabled={deleting} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
               <Trash2 strokeWidth={2} size={14} /> {deleting ? "Removing…" : "Delete"}
             </button>
           )}
-          {error && <span className="error-text" style={{ marginTop: 0 }}>{error}</span>}
+          {error && <span className="error-text inline">{error}</span>}
         </div>
       </form>
     </div>

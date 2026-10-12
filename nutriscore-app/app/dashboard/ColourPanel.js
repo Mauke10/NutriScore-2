@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Sun, Moon } from "lucide-react";
 import Modal from "./Modal";
+import { DEFAULT_COLOR } from "./utils";
 
-const DEFAULT_COLOR = { martin: "#7c3aed", laura: "#db2777" };
 
 const SWATCHES = [
   "#7c3aed", // violet (default Martin)
@@ -50,9 +50,9 @@ export default function ColourPanel({ personId, myColor, refreshAccentColor, the
 
   return (
     <Modal title="Colour" onClose={onClose}>
-      <div style={{ marginBottom: 24 }}>
-        <h4 style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>Your colour</h4>
-        <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 10 }}>
+      <div style={{ marginBottom: "var(--space-6)" }}>
+        <h4 className="panel-heading">Your colour</h4>
+        <p className="panel-desc">
           Used for your name, dot, ring and badges everywhere in the app.
         </p>
         <div className="colour-swatch-grid">
@@ -75,12 +75,12 @@ export default function ColourPanel({ personId, myColor, refreshAccentColor, the
             />
           </label>
         </div>
-        {msg && <p style={{ fontSize: 11.5, color: "var(--text-secondary)", marginTop: 8 }}>{saving ? "Saving…" : msg}</p>}
+        {msg && <p className="status-text small spaced-sm">{saving ? "Saving…" : msg}</p>}
       </div>
 
       <div>
-        <h4 style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 3 }}>Appearance</h4>
-        <p style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 10 }}>
+        <h4 className="panel-heading">Appearance</h4>
+        <p className="panel-desc">
           Bright or night mode, just for this device.
         </p>
         <button
@@ -93,16 +93,16 @@ export default function ColourPanel({ personId, myColor, refreshAccentColor, the
         >
           <span className="theme-switch-thumb">{isNight ? <Moon size={13} strokeWidth={2.2} /> : <Sun size={13} strokeWidth={2.2} />}</span>
         </button>
-        <span style={{ marginLeft: 10, fontSize: 12.5, fontWeight: 600, color: "var(--text-secondary)" }}>
+        <span className="theme-switch-label">
           {isNight ? "Night" : "Bright"}
         </span>
 
         {isNight && (
-          <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 7 }}>
+          <div style={{ marginTop: "var(--space-3-5)" }}>
+            <div className="overline">
               Night style
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: "var(--space-2)" }}>
               {NIGHT_STYLES.map((s) => (
                 <button
                   key={s.key}
@@ -120,8 +120,7 @@ export default function ColourPanel({ personId, myColor, refreshAccentColor, the
 
         <button
           type="button"
-          className="ghost"
-          style={{ marginTop: 14, fontSize: 11.5, padding: "6px 10px" }}
+          className="ghost sm spaced-top"
           onClick={() => onThemeChange(null)}
         >
           Match my device instead

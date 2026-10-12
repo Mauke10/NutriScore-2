@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Trash2, Pencil } from "lucide-react";
-import { currentMonthStr, monthLabel, todayStr } from "./utils";
+import { currentMonthStr, monthLabel, shortDateLabel, todayStr } from "./utils";
 import MiniBarChart from "./MiniBarChart";
 import Modal from "./Modal";
 
@@ -216,9 +216,9 @@ export default function TrainingSection({
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2-5)", marginBottom: "var(--space-3-5)", flexWrap: "wrap" }}>
         {stravaStatus && stravaStatus.connected ? (
-          <span style={{ fontSize: 12.5, color: "var(--text-secondary)" }}>
+          <span className="status-text">
             Strava connected{stravaStatus.athleteId ? " (athlete " + stravaStatus.athleteId + ")" : ""}
           </span>
         ) : isMe ? (
@@ -228,7 +228,7 @@ export default function TrainingSection({
             </button>
           </a>
         ) : (
-          <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Strava not connected yet</span>
+          <span className="status-text muted">Strava not connected yet</span>
         )}
         {stravaStatus && stravaStatus.connected && (
           <button type="button" className="ghost" onClick={syncNow} disabled={syncing}>
@@ -238,7 +238,7 @@ export default function TrainingSection({
       </div>
 
       {isMe && (
-        <form onSubmit={saveWeight} style={{ marginBottom: 20 }}>
+        <form onSubmit={saveWeight} style={{ marginBottom: "var(--space-5)" }}>
           <div className="field">
             <label htmlFor={"wm-month-" + personId}>Month</label>
             <input id={"wm-month-" + personId} type="month" value={weightMonth} onChange={(e) => setWeightMonth(e.target.value)} />
@@ -258,14 +258,14 @@ export default function TrainingSection({
             <button type="submit" className="primary" disabled={saving}>
               {saving ? "Saving…" : "Save weight moved"}
             </button>
-            {error && <span className="error-text" style={{ marginTop: 0 }}>{error}</span>}
+            {error && <span className="error-text inline">{error}</span>}
           </div>
         </form>
       )}
 
       {isMe && (
-        <div style={{ marginBottom: 20 }}>
-          <h4 style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>Log a workout</h4>
+        <div style={{ marginBottom: "var(--space-5)" }}>
+          <h4 className="panel-heading">Log a workout</h4>
           <form onSubmit={addSession}>
             <div className="field wide">
               <div className="segmented">
@@ -323,24 +323,26 @@ export default function TrainingSection({
               <button type="submit" className="primary" disabled={savingSession}>
                 {savingSession ? "Saving…" : "Log it"}
               </button>
-              {sessionError && <span className="error-text" style={{ marginTop: 0 }}>{sessionError}</span>}
+              {sessionError && <span className="error-text inline">{sessionError}</span>}
             </div>
           </form>
 
           {sessions && sessions.length > 0 && (
-            <div className="log-cards" style={{ marginTop: 10 }}>
+            <div className="log-cards" style={{ marginTop: "var(--space-2-5)" }}>
               {sessions.map((s) => (
                 <div className="log-card-row" key={s.id}>
                   <div className="log-card-main">
                     <div className="log-card-top">
                       <span className="type-badge snack">{SESSION_TYPES.find((t) => t.key === s.activity_type)?.label || s.activity_type}</span>
                       <span className="log-card-desc">{s.notes || "—"}</span>
-                      <span className="log-card-date">{s.session_date}</span>
                     </div>
                     <div className="log-card-macros">
-                      {s.distance_km != null ? s.distance_km + " km" : ""}
-                      {s.distance_km != null && s.duration_min != null ? "  ·  " : ""}
-                      {s.duration_min != null ? s.duration_min + " min" : ""}
+                      <span className="log-card-macro-text">
+                        {s.distance_km != null ? s.distance_km + " km" : ""}
+                        {s.distance_km != null && s.duration_min != null ? "  ·  " : ""}
+                        {s.duration_min != null ? s.duration_min + " min" : ""}
+                      </span>
+                      <span className="log-card-date" title={s.session_date}>{shortDateLabel(s.session_date)}</span>
                     </div>
                   </div>
                   <div className="log-card-actions">
@@ -415,7 +417,7 @@ export default function TrainingSection({
                   <button type="submit" className="primary" disabled={editSessionSaving}>
                     {editSessionSaving ? "Saving…" : "Save changes"}
                   </button>
-                  {editSessionError && <span className="error-text" style={{ marginTop: 0 }}>{editSessionError}</span>}
+                  {editSessionError && <span className="error-text inline">{editSessionError}</span>}
                 </div>
               </form>
             </Modal>

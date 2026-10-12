@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Trash2, Pencil } from "lucide-react";
-import { todayStr } from "./utils";
+import { shortDateLabel, todayStr } from "./utils";
 import RecipePicker from "./RecipePicker";
 import { sumIngredients } from "./recipeMath";
 import WeekCalorieTrend from "./WeekCalorieTrend";
@@ -374,11 +374,11 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
               onChange={(e) => pickPhoto(e.target.files?.[0])}
             />
             {photoFile && (
-              <button type="button" className="ghost" onClick={estimateFromPhoto} disabled={estimating} style={{ marginTop: 6 }}>
+              <button type="button" className="ghost" onClick={estimateFromPhoto} disabled={estimating} style={{ marginTop: "var(--space-1-5)" }}>
                 {estimating ? "Estimating…" : "Estimate from photo"}
               </button>
             )}
-            {assumption && <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4 }}>{assumption}</div>}
+            {assumption && <div className="status-text small muted spaced-xs">{assumption}</div>}
           </div>
 
           <div className="field wide">
@@ -464,7 +464,7 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
             <label htmlFor={"date-" + personId}>Date</label>
             <input id={"date-" + personId} type="date" value={form.logDate} onChange={(e) => setField("logDate", e.target.value)} />
           </div>
-          <div className="field wide" style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <div className="field wide" style={{ flexDirection: "row", alignItems: "center", gap: "var(--space-1-5)" }}>
             <input
               id={"saverec-" + personId}
               type="checkbox"
@@ -480,12 +480,12 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
             <button type="submit" className="primary" disabled={saving}>
               {saving ? "Saving…" : "Log it"}
             </button>
-            {error && <span className="error-text" style={{ marginTop: 0 }}>{error}</span>}
+            {error && <span className="error-text inline">{error}</span>}
           </div>
         </form>
       )}
 
-      <div className="log-cards" style={{ marginTop: 14 }}>
+      <div className="log-cards" style={{ marginTop: "var(--space-3-5)" }}>
         {recent.length === 0 && <div className="log-cards-empty">Nothing logged yet.</div>}
         {recent.map((s) => (
           <div className="log-card-row" key={s.id}>
@@ -493,16 +493,18 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
               <div className="log-card-top">
                 <span className={s.meal_type === "meal" ? "type-badge meal" : "type-badge snack"}>{s.meal_type === "meal" ? "Meal" : "Snack"}</span>
                 <span className="log-card-desc">{s.description}</span>
-                <span className="log-card-date">{s.log_date}</span>
               </div>
               <div className="log-card-macros">
-                {s.protein_g != null ? "P " + Math.round(s.protein_g) + "g" : "P —"}
-                {"  ·  "}
-                {s.carbs_g != null ? "C " + Math.round(s.carbs_g) + "g" : "C —"}
-                {"  ·  "}
-                {s.fat_g != null ? "F " + Math.round(s.fat_g) + "g" : "F —"}
-                {"  ·  "}
-                {s.fiber_g != null ? "Fi " + Math.round(s.fiber_g) + "g" : "Fi —"}
+                <span className="log-card-macro-text">
+                  {s.protein_g != null ? "P " + Math.round(s.protein_g) + "g" : "P —"}
+                  {"  ·  "}
+                  {s.carbs_g != null ? "C " + Math.round(s.carbs_g) + "g" : "C —"}
+                  {"  ·  "}
+                  {s.fat_g != null ? "F " + Math.round(s.fat_g) + "g" : "F —"}
+                  {"  ·  "}
+                  {s.fiber_g != null ? "Fi " + Math.round(s.fiber_g) + "g" : "Fi —"}
+                </span>
+                <span className="log-card-date" title={s.log_date}>{shortDateLabel(s.log_date)}</span>
               </div>
             </div>
             <div className="log-card-cal">
@@ -576,7 +578,7 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
               <button type="submit" className="primary" disabled={editSaving}>
                 {editSaving ? "Saving…" : "Save changes"}
               </button>
-              {editError && <span className="error-text" style={{ marginTop: 0 }}>{editError}</span>}
+              {editError && <span className="error-text inline">{editError}</span>}
             </div>
           </form>
         </Modal>

@@ -104,7 +104,7 @@ export default function WeeklySection({ personId, isMe, weekly, refreshWeekly })
       {isMe && (
         <form onSubmit={submit}>
           {editingKey && (
-            <p style={{ fontSize: 11.5, color: "var(--text-secondary)", margin: "0 0 10px" }}>
+            <p className="form-hint">
               Editing the week of {editingKey} — saving will update that entry.
             </p>
           )}
@@ -169,12 +169,12 @@ export default function WeeklySection({ personId, isMe, weekly, refreshWeekly })
                 Cancel edit
               </button>
             )}
-            {error && <span className="error-text" style={{ marginTop: 0 }}>{error}</span>}
+            {error && <span className="error-text inline">{error}</span>}
           </div>
         </form>
       )}
 
-      <div className="table-wrap" style={{ marginTop: 14 }}>
+      <div className="table-wrap" style={{ marginTop: "var(--space-3-5)" }}>
         <table>
           <thead>
             <tr>
@@ -204,8 +204,8 @@ export default function WeeklySection({ personId, isMe, weekly, refreshWeekly })
                 <td className="num">{w.nutrition_adherence_pct != null ? w.nutrition_adherence_pct + "%" : "—"}</td>
                 <td className="notes">{w.notes}</td>
                 {isMe && (
-                  <td style={{ display: "flex", gap: 4 }}>
-                    <button type="button" className="ghost" style={{ fontSize: 11.5, padding: "4px 8px" }} onClick={() => editRow(w)}>
+                  <td className="td-actions">
+                    <button type="button" className="ghost sm" onClick={() => editRow(w)}>
                       Edit
                     </button>
                     <button type="button" className="danger" onClick={() => removeEntry(w.week_start)}>

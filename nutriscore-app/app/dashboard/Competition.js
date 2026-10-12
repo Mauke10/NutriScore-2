@@ -23,7 +23,7 @@ export default function Competition({ martinWeekly, lauraWeekly }) {
     return (
       <div className="card">
         <h3>This week's head-to-head</h3>
-        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
+        <p className="status-text muted">
           Log the same week for both of you to kick off the head-to-head.
         </p>
       </div>

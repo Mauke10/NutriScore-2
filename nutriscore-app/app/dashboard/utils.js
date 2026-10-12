@@ -1,3 +1,7 @@
+// Each person's accent when they haven't picked one in the Colour panel.
+// Keep in sync with --series-martin / --series-laura in globals.css.
+export const DEFAULT_COLOR = { martin: "#7c3aed", laura: "#db2777" };
+
 export function localDateStr(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -7,6 +11,21 @@ export function localDateStr(d) {
 
 export function todayStr() {
   return localDateStr(new Date());
+}
+
+// "Today" / "Yesterday" / "7 Oct" for a YYYY-MM-DD date — short enough to sit
+// on a log card's meta line. Parsed as a local date (never via toISOString,
+// see CLAUDE.md), so "Today" flips at local midnight.
+export function shortDateLabel(ymd) {
+  if (!ymd) return "";
+  if (ymd === todayStr()) return "Today";
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  if (ymd === localDateStr(y)) return "Yesterday";
+  const [yr, mo, da] = ymd.split("-").map(Number);
+  const d = new Date(yr, mo - 1, da);
+  const sameYear = yr === new Date().getFullYear();
+  return d.toLocaleDateString("en-GB", sameYear ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" });
 }
 
 export function mondayOf(d) {
