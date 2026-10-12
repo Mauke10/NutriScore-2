@@ -48,7 +48,7 @@ Session: a signed cookie (`nutriscore_session`), HMAC-SHA256 over `personId.issu
 
 **Explicit product decision — do not add without being asked again:** no PIN brute-force/lockout protection. The user considered this and declined it ("The pin thing is no problem right now as it is only to ppl"). Don't add rate-limiting or lockout to the login route as a "security improvement" unasked.
 
-**Migration not yet confirmed run:** `supabase/migration_008_pin_hash.sql` adds the `pin_hash` column. If per-person PINs are erroring in production, check this first — it's possible it was never run against the live Supabase project.
+**Migration 008 applied:** `supabase/migration_008_pin_hash.sql` (adds `people.pin_hash`) was applied to the live NutriScore2 Supabase project (`vckbkirbzjmsvqpckvxl`) on 2026-10-12. Before that, Settings → "Change your PIN" errored because the column was missing; login was unaffected since it falls back to `APP_PIN`.
 
 ## Database
 
