@@ -157,6 +157,21 @@ body {
   line-height: 1.5;
 }
 
+/* Status-bar backdrop. The installed app runs edge-to-edge
+   (viewport-fit=cover + black-translucent in layout.js), so without this,
+   content scrolls up underneath the clock and battery icons. A fixed
+   translucent strip exactly as tall as the safe area keeps them readable —
+   the same material as the bottom nav. It's 0px tall wherever there's no
+   inset (desktop, a normal browser tab), so it only exists where needed.
+   Sits under the modal overlay (50) so an open modal still dims it. */
+body::before {
+  content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 45;
+  height: env(safe-area-inset-top, 0px); pointer-events: none;
+  background: color-mix(in srgb, var(--page) 80%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
 /* iOS Safari zooms the whole page on focus if an input's font is under 16px,
    and doesn't zoom back out on blur. Only bumping it on touch/coarse
    pointers keeps the tighter desktop sizing untouched. */
@@ -221,6 +236,17 @@ form input, form textarea {
   font: inherit; background: var(--page); color: var(--text-primary);
   border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-2); width: 100%; min-width: 0;
 }
+/* iOS Safari draws date/month pickers as native controls with their own
+   minimum width and height, ignoring width:100% — so on a phone they spill
+   into the neighbouring field and sit taller than the inputs next to them.
+   Dropping the native appearance makes them size like every other input;
+   tapping still opens the native picker. */
+form input[type="date"], form input[type="month"] {
+  -webkit-appearance: none; appearance: none;
+  display: block; max-width: 100%;
+  min-height: calc(1.5em + 2 * var(--space-2) + 2px); /* same height as a text input */
+}
+form input::-webkit-date-and-time-value { text-align: left; margin: 0; }
 form textarea { resize: vertical; min-height: 42px; }
 /* Native date/month pickers (iOS Safari especially) render their text at a
    fixed intrinsic width that can exceed a narrow grid column and spill into
