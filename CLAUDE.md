@@ -48,7 +48,7 @@ Session: a signed cookie (`nutriscore_session`), HMAC-SHA256 over `personId.issu
 
 **Explicit product decision — do not add without being asked again:** no PIN brute-force/lockout protection. The user considered this and declined it ("The pin thing is no problem right now as it is only to ppl"). Don't add rate-limiting or lockout to the login route as a "security improvement" unasked.
 
-**Migration 009 (foods) + its seed: written, check before assuming applied** — `select count(*) from foods` on the live project tells you.
+**Migration 009 applied + seeded:** `supabase/migration_009_foods.sql` was applied to the live project on 2026-10-12 and `seed_009_fineli_foods.sql` loaded (4,051 Fineli rows, verified by md5 against the local seed). Re-running the seed after editing `et-names.json` is safe — it upserts and leaves `use_count` alone.
 
 **Migration 008 applied:** `supabase/migration_008_pin_hash.sql` (adds `people.pin_hash`) was applied to the live NutriScore2 Supabase project (`vckbkirbzjmsvqpckvxl`) on 2026-10-12. Before that, Settings → "Change your PIN" errored because the column was missing; login was unaffected since it falls back to `APP_PIN`.
 
