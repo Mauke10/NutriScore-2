@@ -6,6 +6,7 @@ import { shortDateLabel, todayStr } from "./utils";
 import RecipePicker from "./RecipePicker";
 import { scaledIngredient, sumIngredients } from "./recipeMath";
 import FoodSearch from "./FoodSearch";
+import { foodIcon } from "../../lib/foodIcons";
 import WeekCalorieTrend from "./WeekCalorieTrend";
 import Modal from "./Modal";
 
@@ -426,6 +427,9 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
               <div className="ingredient-log-editor">
                 {form.ingredients.map((ing, idx) => (
                   <div className="ingredient-log-row" key={ing.key || ing.name + idx}>
+                    <span className="food-icon" aria-hidden="true">
+                      {foodIcon(ing)}
+                    </span>
                     <span className="ingredient-log-name">{ing.name}</span>
                     <span className="ingredient-log-kcal">{Math.round(scaledIngredient(ing).calories)} kcal</span>
                     <input

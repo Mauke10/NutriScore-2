@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
+import { foodIcon } from "../../lib/foodIcons";
 
 // Type-ahead over the food database (/api/foods: Fineli + your own foods,
 // searchable by Estonian, English or Finnish name or any synonym). Picking a
@@ -98,6 +99,9 @@ export default function FoodSearch({ id, onPick, placeholder }) {
           {error && <div className="recipe-dropdown-hint">{error}</div>}
           {results.map((f) => (
             <button type="button" key={f.id} className="recipe-option food-option" onClick={() => pick(f)}>
+              <span className="food-icon" aria-hidden="true">
+                {foodIcon(f)}
+              </span>
               <span className="food-option-text">
                 <span className="recipe-option-name">{f.name}</span>
                 {(f.nameEn || f.source === "custom" || f.kind === "dish") && (
