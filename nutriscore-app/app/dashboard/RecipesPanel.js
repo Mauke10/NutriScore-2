@@ -5,6 +5,7 @@ import { ChevronDown, ChevronLeft, Plus, Search, Trash2 } from "lucide-react";
 import Modal from "./Modal";
 import { scaledIngredient, sumIngredients } from "./recipeMath";
 import FoodSearch from "./FoodSearch";
+import { foodIcon } from "../../lib/foodIcons";
 
 const blankRecipe = { id: null, name: "", meal_type: "meal", portion_note: "", ingredients: [] };
 
@@ -385,6 +386,9 @@ function IngredientRow({ ing, autoFocus, onChange, onRemove }) {
   return (
     <li className={ing.open ? "recipe-ing is-open" : "recipe-ing"}>
       <div className="recipe-ing-line">
+        <span className="food-icon" aria-hidden="true">
+          {foodIcon(ing)}
+        </span>
         <button
           type="button"
           className="recipe-ing-toggle"
