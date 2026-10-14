@@ -99,7 +99,7 @@ export default function SnackSection({
   const ringPct = calorieTarget ? Math.max(0, Math.min(1, combinedTotal / calorieTarget)) : 0;
   const ringOffset = RING_CIRC * (1 - ringPct);
   const isOver = balance != null && balance > 0;
-  const ringColor = calorieTarget == null ? "var(--gridline)" : isOver ? "var(--status-warning)" : "var(--" + (personId === "laura" ? "series-laura" : "series-martin") + ")";
+  const ringColor = calorieTarget == null ? "var(--gridline)" : isOver ? "var(--over)" : "var(--" + (personId === "laura" ? "series-laura" : "series-martin") + ")";
 
   // Looking at yesterday is usually "I forgot to log something yesterday", so
   // new entries default to the day on screen (the Date field shows it). Also
@@ -505,7 +505,7 @@ export default function SnackSection({
             <div className="cal-ring-center">
               {calorieTarget != null ? (
                 <>
-                  <div className="cal-ring-value" style={isOver ? { color: "var(--status-warning)" } : undefined}>
+                  <div className="cal-ring-value" style={isOver ? { color: "var(--over)" } : undefined}>
                     {isOver ? "+" + balance : Math.abs(balance)}
                   </div>
                   <div className="cal-ring-unit">{isOver ? "kcal over" : "kcal left"}</div>
@@ -520,19 +520,19 @@ export default function SnackSection({
           </div>
           <div className="macro-chip-col">
             <div className="macro-chip">
-              <span className="m-label"><span className="m-dot" style={{ background: "var(--series-martin)" }} />Protein</span>
+              <span className="m-label"><span className="m-dot" style={{ background: "var(--macro-protein)" }} />Protein</span>
               <span className="m-value">{proteinTarget != null ? Math.round(proteinTotal) + " / " + Math.round(proteinTarget) + " g" : Math.round(proteinTotal) + " g"}</span>
             </div>
             <div className="macro-chip">
-              <span className="m-label"><span className="m-dot" style={{ background: "var(--status-warning)" }} />Carbs</span>
+              <span className="m-label"><span className="m-dot" style={{ background: "var(--macro-carbs)" }} />Carbs</span>
               <span className="m-value">{Math.round(carbsTotal)} g</span>
             </div>
             <div className="macro-chip">
-              <span className="m-label"><span className="m-dot" style={{ background: "var(--series-laura)" }} />Fat</span>
+              <span className="m-label"><span className="m-dot" style={{ background: "var(--macro-fat)" }} />Fat</span>
               <span className="m-value">{Math.round(fatTotal)} g</span>
             </div>
             <div className="macro-chip">
-              <span className="m-label"><span className="m-dot" style={{ background: "var(--status-good)" }} />Fiber</span>
+              <span className="m-label"><span className="m-dot" style={{ background: "var(--macro-fiber)" }} />Fiber</span>
               <span className="m-value">{Math.round(fiberTotal)} g</span>
             </div>
           </div>

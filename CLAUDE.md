@@ -100,6 +100,7 @@ Every font-size, gap/padding/margin and border-radius in `globals.css` uses a to
 - **Radius:** `--radius-xs` … `--radius-2xl`, plus `--radius-full`. A nested surface is one step smaller than its parent.
 - **Per-person colour:** use `--accent` / `--accent-soft`, never `--series-martin` with a `[data-person="laura"]` override. The nearest `[data-person]` ancestor decides the colour, and `.wrap` carries the signed-in person's. `--series-*` is still right where both people show at once (charts, compare columns, dots). The accent vars are declared on `.wrap`/`[data-person]`, not `:root`, because DashboardClient sets custom colours inline on `.wrap`.
 - **Contrast:** light-theme `--text-muted`, `--status-good` and `--status-warning` were darkened to pass 4.5:1 as text. Re-check contrast if you change them.
+- **Chart & macro colours:** `--over` (over-goal bars, ring and the big "+300"), `--macro-protein/carbs/fat/fiber` (macro dots) and `--bar-dim` (how much the 7-day chart fades other days) are set per scheme in one block near the top of `globals.css`. Use them, not `--status-warning` or the person colours, for those fills: `--status-warning` is a dark *text* colour and turned muddy as a big fill, and the person colours can both be the same pink. Plain opacity on a dark page turns orange brown and pink maroon, which is why night schemes use a higher `--bar-dim`.
 - Small icon buttons get a 44px tap area from an invisible `::after` (see "Tap targets" at the end of the file). Add new small buttons to that list.
 
 ## PWA / mobile details worth knowing before touching layout or theming
@@ -120,6 +121,7 @@ Dashboard (`app/dashboard/DashboardClient.js` and friends), per person:
 - Weekly log (weight, waist, sessions, RPE, HR zones, sleep, supplements, nutrition adherence, avg calories/protein) and quarterly bloodwork panels (ferritin, B12, folate, vitamin D).
 - Training: Strava-synced monthly volume (swim/bike/run) plus manually-logged sessions, combined client-side for goal-progress bars.
 - Settings: Strava connect/sync, per-person PIN change (`app/api/change-pin/route.js`).
+- Colour panel: per-person colour from presets or a colour wheel (`ColourWheel.js`: hue/vividness wheel drawn per-pixel on a canvas + a light/dark slider kept to 30–70% lightness, warns when white text on it would be under 3:1), and the device's colour scheme (see PWA notes).
 - Compete tab: weekly head-to-head category wins (`Competition.js`), a side-by-side stat comparison (`CompareColumns.js`) that now includes a **protein-streak counter** (consecutive days protein target was hit; today doesn't break the streak if it just hasn't been logged yet — see `proteinStreak()` in `utils.js`).
 - A shared "morning notes" whiteboard and a training-plan calendar.
 

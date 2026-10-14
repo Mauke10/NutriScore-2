@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Modal from "./Modal";
+import ColourWheel from "./ColourWheel";
 import { DEFAULT_COLOR } from "./utils";
 import { DAY_THEMES, NIGHT_THEMES } from "../../lib/theme";
 
@@ -29,6 +30,7 @@ export default function ColourPanel({ personId, myColor, refreshAccentColor, the
   const [picked, setPicked] = useState(myColor || DEFAULT_COLOR[personId]);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [wheelOpen, setWheelOpen] = useState(false);
 
   async function applyColor(hex) {
     setPicked(hex);
@@ -42,6 +44,7 @@ export default function ColourPanel({ personId, myColor, refreshAccentColor, the
       });
       await refreshAccentColor();
       setMsg("Saved.");
+      setWheelOpen(false);
     } finally {
       setSaving(false);
     }
@@ -66,16 +69,20 @@ export default function ColourPanel({ personId, myColor, refreshAccentColor, the
               onClick={() => applyColor(hex)}
             />
           ))}
-          <label className="colour-swatch colour-swatch-custom" style={{ background: picked }}>
-            <input
-              type="color"
-              value={picked}
-              onChange={(e) => applyColor(e.target.value)}
-              style={{ opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
-            />
-          </label>
+          {/* A colour picked on the wheel shows as its own (selected) swatch. */}
+          {!SWATCHES.some((hex) => hex.toLowerCase() === picked.toLowerCase()) && (
+            <button type="button" className="colour-swatch selected" style={{ background: picked }} aria-label={"Your colour " + picked} onClick={() => setWheelOpen(true)} />
+          )}
+          <button
+            type="button"
+            className={wheelOpen ? "colour-swatch colour-swatch-wheel selected" : "colour-swatch colour-swatch-wheel"}
+            aria-label="Pick any colour on a colour wheel"
+            aria-expanded={wheelOpen}
+            onClick={() => setWheelOpen((o) => !o)}
+          />
         </div>
-        {msg && <p className="status-text small spaced-sm">{saving ? "Saving…" : msg}</p>}
+        {wheelOpen && <ColourWheel initial={picked} saving={saving} onUse={applyColor} onCancel={() => setWheelOpen(false)} />}
+        {msg && !wheelOpen && <p className="status-text small spaced-sm">{saving ? "Saving…" : msg}</p>}
       </div>
 
       <div>
