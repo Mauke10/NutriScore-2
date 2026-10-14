@@ -46,6 +46,8 @@ Session: a signed cookie (`nutriscore_session`), HMAC-SHA256 over `personId.issu
 
 **Explicit product decision — do not add without being asked again:** no PIN brute-force/lockout protection. The user considered this and declined it ("The pin thing is no problem right now as it is only to ppl"). Don't add rate-limiting or lockout to the login route as a "security improvement" unasked.
 
+**Migration 012 (training_plan_items): written, NOT yet applied to live.** `supabase/migration_012_training_plan_items.sql` creates `training_plan_items` and copies the old one-per-day `training_plan` rows into it. Until it's run, the Calendar tab and the header's today strip show nothing (the API reads the new table). Update this line once it's run.
+
 **Migration 011 applied:** `supabase/migration_011_menu_settings.sql` (adds `race_name`, `race_date`, `day_end_hour`, `share_meals`, `show_fiber`, `strava_autosync` to `settings`) was applied to the live project on 2026-10-14, before the side drawer shipped. `race_date` starts out null until set in Settings.
 
 **Migration 010 applied:** `supabase/migration_010_body_measurements.sql` (the `body_measurements` table + `settings.measurement_parts`) was applied to the live project on 2026-10-14, before the Measurements card shipped.
@@ -56,7 +58,7 @@ Session: a signed cookie (`nutriscore_session`), HMAC-SHA256 over `personId.issu
 
 ## Database
 
-`supabase/schema.sql` is the full current schema (fresh-install source of truth). Numbered migration files (`migration_002` through `migration_011`) are additive deltas applied by hand — **there is no migration runner**. Each one is written to be safe to re-run (`if not exists` everywhere). When you need a schema change: write a new `migration_00N_description.sql`, and also update `schema.sql` so a fresh install matches. The user runs these manually in the Supabase SQL Editor — there's no automated pipeline, so after writing a migration, tell them explicitly that they need to go run it.
+`supabase/schema.sql` is the full current schema (fresh-install source of truth). Numbered migration files (`migration_002` through `migration_012`) are additive deltas applied by hand — **there is no migration runner**. Each one is written to be safe to re-run (`if not exists` everywhere). When you need a schema change: write a new `migration_00N_description.sql`, and also update `schema.sql` so a fresh install matches. The user runs these manually in the Supabase SQL Editor — there's no automated pipeline, so after writing a migration, tell them explicitly that they need to go run it.
 
 Tables, in brief:
 - `people` — exactly two rows (`martin`, `laura`), `pin_hash` nullable (see Auth).
@@ -69,7 +71,8 @@ Tables, in brief:
 - `settings` — one row per person, `calorie_target`/`protein_target`/`swim_goal_km`/`bike_goal_km`/`run_goal_km`/`accent_color`/`measurement_parts` (text[], which body parts the Measurements card shows, in order), plus the drawer's Settings (migration 011, read/written via `/api/prefs`): `race_name`/`race_date` (countdown), `day_end_hour` 0–4, `share_meals`, `show_fiber`, `strava_autosync`.
 - `body_measurements` — one row per person per day per body part (`part` is a key from `app/dashboard/measurementParts.js`, or `custom:<name>`; never rename a key). Unique on `(person_id, measured_on, part)`, so re-logging a day upserts. `/api/measurements` GET also folds `weekly_logs.waist_cm` into the waist series (dated to the week's Monday) so waist isn't typed twice.
 - `training_volume` — monthly, Strava-synced (`source: 'strava'`), separate from `training_sessions` on purpose so a re-sync can never clobber or double-count a manually-logged session.
-- `strava_accounts`, `daily_notes`, `training_plan` — OAuth tokens, a daily shared whiteboard note, and the planned-activity calendar, respectively.
+- `training_plan_items` — planned sessions on the Calendar tab, any number per person per day (migration 012): `activity` text + a manual `done` tick. The sport isn't stored; `lib/trainingSports.js` reads it from the text (`sportOf`, English + Estonian words, brick/rest win) and pulls planned km per sport out of it (`distancesOf`, splits on `+`/`,`/`ja`, skips times and intervals). A plan also shows as done when a `training_sessions` row of the same sport exists that day (Strava only syncs monthly totals, so Strava rides don't tick plans off). `POST /api/training-plan` with `alsoPartner` is the one place you write to the other person's plan ("Plan it for Laura too").
+- `strava_accounts`, `daily_notes`, `training_plan` — OAuth tokens, a daily shared whiteboard note, and the old one-line-per-day plan (superseded by `training_plan_items`, nothing reads it, safe to drop once 012 is applied), respectively.
 
 ## Date handling — the single most important gotcha in this codebase
 
@@ -125,7 +128,8 @@ Dashboard (`app/dashboard/DashboardClient.js` and friends), per person:
 - **Meal privacy:** with `share_meals` off, `GET /api/snacks` for the *other* person returns entries with `description` replaced by "Meal"/"Snack", notes/recipe link cleared and `mealsHidden: true` — enforced server-side, so the partner view, desktop column and Compete tab all respect it.
 - Colour panel: per-person colour from presets or a colour wheel (`ColourWheel.js`: hue/vividness wheel drawn per-pixel on a canvas + a light/dark slider kept to 30–70% lightness, warns when white text on it would be under 3:1), and the device's colour scheme (see PWA notes).
 - Compete tab: weekly head-to-head category wins (`Competition.js`), a side-by-side stat comparison (`CompareColumns.js`) that now includes a **protein-streak counter** (consecutive days protein target was hit; today doesn't break the streak if it just hasn't been logged yet — see `proteinStreak()` in `utils.js`).
-- A shared "morning notes" whiteboard and a training-plan calendar.
+- **Calendar tab** (`TrainingPlanCalendar.js`): one week at a time — day strip, your planned swim/bike/run km, then a card per day with both people's sessions (sport emoji, "done" tag, a session you both planned with the same words shows once as "together"). "+ Plan" / "+ Add" / tapping your own session opens a sheet with sport + amount chips that write the text. The week renders only after mount and formats dates by hand: the server's clock is UTC and Node's `en-GB` date strings differ from the browser's, both of which broke hydration. `TodayPlanStrip.js` refetches on the `nutriscore-plan-changed` window event.
+- A shared "morning notes" whiteboard.
 
 ## Deployment history (context, may no longer be the process once this is in real git)
 

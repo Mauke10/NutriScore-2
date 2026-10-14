@@ -103,7 +103,8 @@ export default function WeekCalorieTrend({ personId, snacks, calorieTarget, sele
             >
               {/* Full-height invisible hit area — a 2px "not logged" bar is too small to tap. */}
               {onSelectDate && <rect x={x - GAP / 2} y={0} width={BAR_W + GAP} height={CHART_H + LABEL_H} fill="transparent" />}
-              <title>{d.date} — {d.tracked ? Math.round(d.total) + " kcal" : "not logged"}</title>
+              {/* one string: several text nodes in <title> break hydration */}
+              <title>{d.date + " — " + (d.tracked ? Math.round(d.total) + " kcal" : "not logged")}</title>
               <rect x={x} y={y} width={BAR_W} height={h} rx={5} fill={fill} />
               {isSelected && (
                 <rect x={x - 1.5} y={y - 1.5} width={BAR_W + 3} height={h + 3} rx={6.5} fill="none" stroke={fill} strokeWidth={1.5} opacity={0.55} />

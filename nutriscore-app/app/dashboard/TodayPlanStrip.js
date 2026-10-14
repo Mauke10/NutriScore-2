@@ -1,41 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { todayStr } from "./utils";
+import { PEOPLE, localDateStr } from "./utils";
+import { PLAN_CHANGED } from "./TrainingPlanCalendar";
+import { SPORTS, sportOf } from "../../lib/trainingSports";
 
-const DISPLAY_NAME = { martin: "Martin", laura: "Laura" };
-const SERIES_VAR = { martin: "--series-martin", laura: "--series-laura" };
-
+// Both people's planned sessions for today, under the page title. Refetches
+// when the Calendar tab changes a plan. Real calendar day, like the Calendar.
 export default function TodayPlanStrip() {
-  const [entries, setEntries] = useState({ martin: null, laura: null });
-  const today = todayStr();
+  const [plans, setPlans] = useState([]);
+  const today = localDateStr(new Date());
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/training-plan?date=" + today)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled) setEntries(data.entries || { martin: null, laura: null });
-      })
-      .catch(() => {});
+    const load = () =>
+      fetch("/api/training-plan?from=" + today + "&to=" + today)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!cancelled) setPlans(data.entries || []);
+        })
+        .catch(() => {});
+    load();
+    window.addEventListener(PLAN_CHANGED, load);
     return () => {
       cancelled = true;
+      window.removeEventListener(PLAN_CHANGED, load);
     };
   }, [today]);
 
   return (
     <div className="today-plan-strip">
-      {["martin", "laura"].map((id) => (
-        <div className="today-plan-box" key={id}>
-          <div className="today-plan-name">
-            <span className="dot" style={{ background: "var(" + SERIES_VAR[id] + ")" }} />
-            {DISPLAY_NAME[id]}
+      {PEOPLE.map((p) => {
+        const mine = plans.filter((x) => x.person_id === p.key);
+        return (
+          <div className="today-plan-box" key={p.key}>
+            <div className="today-plan-name">
+              <span className="dot" style={{ background: "var(" + p.seriesVar + ")" }} />
+              {p.name}
+            </div>
+            <div className={mine.length ? "today-plan-activity" : "today-plan-activity empty"}>
+              {mine.length ? mine.map((x) => SPORTS[sportOf(x.activity)].emoji + " " + x.activity).join(" · ") : "Nothing planned"}
+            </div>
           </div>
-          <div className={entries[id] ? "today-plan-activity" : "today-plan-activity empty"}>
-            {entries[id] || "Nothing planned"}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

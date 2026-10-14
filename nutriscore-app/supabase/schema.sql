@@ -222,6 +222,20 @@ create table if not exists training_plan (
 );
 create index if not exists training_plan_date_idx on training_plan (plan_date);
 
+-- Planned sessions on the Calendar tab — any number per person per day
+-- (migration 012; replaced training_plan above, which nothing reads now).
+-- The sport is read from the text by lib/trainingSports.js, not stored.
+create table if not exists training_plan_items (
+  id uuid primary key default gen_random_uuid(),
+  person_id text not null references people(id),
+  plan_date date not null,
+  activity text not null,
+  done boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists training_plan_items_date_idx on training_plan_items (plan_date);
+
 -- Monthly training volume, pulled from Strava (weight_moved_kg stays manual / Hevy-later).
 create table if not exists training_volume (
   id uuid primary key default gen_random_uuid(),
@@ -262,6 +276,7 @@ alter table recipes enable row level security;
 alter table recipe_ingredients enable row level security;
 alter table daily_notes enable row level security;
 alter table training_plan enable row level security;
+alter table training_plan_items enable row level security;
 alter table training_sessions enable row level security;
 alter table foods enable row level security;
 alter table body_measurements enable row level security;
