@@ -22,8 +22,8 @@ import TodayPlanStrip from "./TodayPlanStrip";
 import TrainingPlanCalendar from "./TrainingPlanCalendar";
 import CompareColumns from "./CompareColumns";
 import { DEFAULT_COLOR, dayViewLabel } from "./utils";
+import { DEFAULT_THEME, THEME_KEY, normalizeTheme, resolveTheme } from "../../lib/theme";
 
-const THEME_KEY = "nutriscore-theme";
 // Mobile shows the current tab's name as the page title (desktop shows
 // everything at once, so it keeps the app name). Keep in sync with BottomNav.
 const TAB_TITLES = { today: "Today", training: "Training", calendar: "Calendar", body: "Body", compete: "Compete" };
@@ -36,50 +36,48 @@ export default function DashboardClient({ me }) {
   const [dayOffset, setDayOffset] = useState(0); // food tab: 0 = today, 1 = yesterday … 6 (swiped on the calorie ring)
   const [openPanel, setOpenPanel] = useState(null); // null | 'goals' | 'settings' | 'recipes' | 'colour'
   const cameraTriggerRef = useRef(null);
-  const [theme, setTheme] = useState({ mode: null, night: "dark" }); // mode: null (match device) | 'light' | 'dark' | 'green'
-
-  // Pick up any theme choice already saved on this device, then keep <html>'s
-  // data-theme in sync with it (and persist future changes back to it).
-  useEffect(() => {
+  // Colour scheme for this device: { mode: 'day' | 'night' | null (follow
+  // the device), day, night } — see lib/theme.js. Read straight from storage
+  // on first render (the pre-paint script in layout.js already applied it),
+  // so there's no default-then-saved flicker. Nothing about it is in the
+  // server-rendered markup, so this can't cause a hydration mismatch.
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_THEME;
     try {
-      const saved = JSON.parse(localStorage.getItem(THEME_KEY) || "null");
-      if (saved && typeof saved === "object") setTheme({ mode: saved.mode ?? null, night: saved.night || "dark" });
+      return normalizeTheme(JSON.parse(localStorage.getItem(THEME_KEY) || "null"));
     } catch {
-      // ignore malformed/unavailable storage
+      return DEFAULT_THEME;
     }
-  }, []);
+  });
 
+  // Put the resolved scheme on <html>, remember the choice, and repaint the
+  // status bar. When following the device, keep listening: the phone flips
+  // to dark at sunset while the app is already open.
   useEffect(() => {
-    if (theme.mode) document.documentElement.setAttribute("data-theme", theme.mode);
-    else document.documentElement.removeAttribute("data-theme");
     try {
       localStorage.setItem(THEME_KEY, JSON.stringify(theme));
     } catch {
       // ignore unavailable storage
     }
-    // Keep the status bar / task-switcher chrome (theme-color meta tag,
-    // set up in layout.js) matching whatever's actually on screen.
-    window.__nutriscoreApplyThemeColor?.(theme.mode);
-  }, [theme]);
-
-  // "Match my device" (theme.mode === null) needs to keep tracking the OS
-  // setting live, not just at the moment it was picked — e.g. the phone
-  // flips into dark mode at sunset while the app is already open.
-  useEffect(() => {
-    if (theme.mode) return;
-    let mql;
+    let mql = null;
     try {
       mql = window.matchMedia("(prefers-color-scheme: dark)");
     } catch {
-      return;
+      // very old browser: treat the device as bright
     }
-    const onChange = () => window.__nutriscoreApplyThemeColor?.(null);
-    mql.addEventListener?.("change", onChange);
-    return () => mql.removeEventListener?.("change", onChange);
-  }, [theme.mode]);
+    const apply = () => {
+      const key = resolveTheme(theme, !!mql?.matches);
+      document.documentElement.setAttribute("data-theme", key);
+      window.__nutriscoreApplyThemeColor?.(key);
+    };
+    apply();
+    if (theme.mode !== null || !mql) return;
+    mql.addEventListener?.("change", apply);
+    return () => mql.removeEventListener?.("change", apply);
+  }, [theme]);
 
   function handleThemeChange(next) {
-    setTheme(next || { mode: null, night: theme.night });
+    setTheme(normalizeTheme(next));
   }
 
   function openQuickCamera() {

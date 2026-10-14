@@ -104,9 +104,9 @@ Every font-size, gap/padding/margin and border-radius in `globals.css` uses a to
 
 ## PWA / mobile details worth knowing before touching layout or theming
 
-- `app/layout.js` sets `viewport-fit=cover` + an inline script (`THEME_COLOR_SNIPPET`) that applies the saved theme and a matching `<meta name="theme-color">` *before* first paint, to avoid a flash of the wrong theme/status-bar color. There is deliberately no static `<meta name="theme-color">` tag in the JSX — the script creates the one and only instance. Don't add a second one.
-- Three themes exist: light (default), dark, and a green "forest" variant — all as CSS custom properties in `globals.css`, switched via `data-theme` on `<html>`.
-- `window.__nutriscoreApplyThemeColor(mode)` is exposed globally by that inline script so `DashboardClient.js` can re-sync the status bar color whenever the person changes theme at runtime or their OS dark-mode setting changes while "match device" is selected.
+- `app/layout.js` sets `viewport-fit=cover` + an inline script (`THEME_COLOR_SNIPPET`) that resolves the saved colour scheme (incl. "Auto" → device light/dark), always sets `data-theme` on `<html>`, and paints a matching `<meta name="theme-color">` *before* first paint, to avoid a flash of the wrong theme/status-bar color. There is deliberately no static `<meta name="theme-color">` tag in the JSX — the script creates the one and only instance. Don't add a second one.
+- Colour schemes: bright **Classic** (`light`, the plain `:root` defaults), **Sand**, **Nordic**, **Blush**; night **Classic** (`dark`), **Midnight**, **Ember** — each a `:root[data-theme="<key>"]` block in `globals.css`, listed (with the `bg` that must equal its `--page`) in `lib/theme.js`, the single source the Colour panel, `DashboardClient` and the layout snippet read. The saved choice (localStorage `nutriscore-theme`) is `{ mode: "day" | "night" | null (Auto), day, night }`; `normalizeTheme()` also upgrades the old `{ mode: "light"|"dark"|"green" }` shape (the old Forest/`green` scheme was retired → night Classic). The layout snippet mirrors `normalizeTheme`/`resolveTheme` by hand in ES5 — change both together. All text/status colours pass 4.5:1 in every scheme; re-check if you add one.
+- `window.__nutriscoreApplyThemeColor(key)` (a resolved scheme key) is exposed globally by that inline script so `DashboardClient.js` can re-sync the status bar color whenever the person changes scheme at runtime or their OS dark-mode setting changes while Auto is selected.
 
 ## Feature inventory (as of this handoff)
 
