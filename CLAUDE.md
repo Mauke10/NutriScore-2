@@ -48,7 +48,7 @@ Session: a signed cookie (`nutriscore_session`), HMAC-SHA256 over `personId.issu
 
 **Explicit product decision — do not add without being asked again:** no PIN brute-force/lockout protection. The user considered this and declined it ("The pin thing is no problem right now as it is only to ppl"). Don't add rate-limiting or lockout to the login route as a "security improvement" unasked.
 
-**Migration 010 (body measurements): written, NOT yet applied to live** — `supabase/migration_010_body_measurements.sql` adds the `body_measurements` table and `settings.measurement_parts`. The Measurements card errors until it's applied; check with `select to_regclass('public.body_measurements')`. Update this line once it's run.
+**Migration 010 applied:** `supabase/migration_010_body_measurements.sql` (the `body_measurements` table + `settings.measurement_parts`) was applied to the live project on 2026-10-14, before the Measurements card shipped.
 
 **Migration 009 applied + seeded:** `supabase/migration_009_foods.sql` was applied to the live project on 2026-10-12 and `seed_009_fineli_foods.sql` loaded (4,051 Fineli rows, verified by md5 against the local seed). Re-running the seed after editing `et-names.json` is safe — it upserts and leaves `use_count` alone.
 
