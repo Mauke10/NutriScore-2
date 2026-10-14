@@ -13,6 +13,26 @@ export function todayStr() {
   return localDateStr(new Date());
 }
 
+// YYYY-MM-DD for n days before today, local time (see CLAUDE.md on dates).
+export function dateDaysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return localDateStr(d);
+}
+
+// How many past days the food tab's day view reaches back (today + 6).
+export const DAY_VIEW_DAYS = 7;
+
+// Name for the day the food tab is showing, n days back: "Today",
+// "Yesterday", then the weekday ("Sunday") — unique within the 7-day window.
+// Used by the bottom nav tab, the mobile page title and the card heading.
+export function dayViewLabel(n) {
+  if (n === 0) return "Today";
+  if (n === 1) return "Yesterday";
+  const [yr, mo, da] = dateDaysAgo(n).split("-").map(Number);
+  return new Date(yr, mo - 1, da).toLocaleDateString("en-GB", { weekday: "long" });
+}
+
 // "Today" / "Yesterday" / "7 Oct" for a YYYY-MM-DD date — short enough to sit
 // on a log card's meta line. Parsed as a local date (never via toISOString,
 // see CLAUDE.md), so "Today" flips at local midnight.

@@ -643,6 +643,26 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .split-line { display: flex; gap: var(--space-3-5); font-size: var(--text-sm); color: var(--text-secondary); margin: -4px 0 var(--space-3-5); }
 .split-line strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
 
+/* Day view (SnackSection): swipe the ring + macros sideways to step through
+   the last 7 days. pan-y keeps vertical scrolling with the browser; the dots
+   and arrows below do the same for mouse and keyboard. */
+.day-swipe { touch-action: pan-y; }
+.day-nav { display: flex; align-items: center; justify-content: center; gap: var(--space-0-5); margin: calc(-1 * var(--space-2)) 0 var(--space-3); }
+.day-nav-arrow {
+  display: grid; place-items: center; background: transparent; border: none; padding: var(--space-1);
+  border-radius: var(--radius-sm); color: var(--text-muted); cursor: pointer;
+}
+.day-nav-arrow:disabled { opacity: 0.3; cursor: default; }
+.day-nav-dot { display: grid; place-items: center; width: 20px; height: 24px; background: transparent; border: none; padding: 0; cursor: pointer; }
+.day-nav-dot::before {
+  content: ""; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--gridline);
+  transition: width 180ms var(--ease-out), background 180ms var(--ease-out);
+}
+.day-nav-dot.active::before { width: 16px; background: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .day-nav-dot::before { transition: none; }
+}
+
 /* Log entries as card rows (replaces table) */
 /* One grouped surface with hairlines between rows, not a stack of
    separately outlined boxes — the list reads as one object. */
@@ -841,11 +861,11 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
    expansion is kept tiny so neighbouring buttons (edit + remove) don't
    steal each other's taps. */
 .log-card-edit, .log-card-remove, .ingredient-remove, .modal-close,
-.plan-cal-nav-btn, .plan-cal-today-btn, button.danger {
+.plan-cal-nav-btn, .plan-cal-today-btn, button.danger, .day-nav-arrow, .day-nav-dot {
   position: relative;
 }
 .log-card-edit::after, .log-card-remove::after, .ingredient-remove::after, .modal-close::after,
-.plan-cal-nav-btn::after, .plan-cal-today-btn::after, button.danger::after {
+.plan-cal-nav-btn::after, .plan-cal-today-btn::after, button.danger::after, .day-nav-arrow::after, .day-nav-dot::after {
   content: ""; position: absolute; top: 50%; left: -1px; right: -1px;
   height: 44px; transform: translateY(-50%);
 }

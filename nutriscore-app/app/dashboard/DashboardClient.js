@@ -20,7 +20,7 @@ import Whiteboard from "./Whiteboard";
 import TodayPlanStrip from "./TodayPlanStrip";
 import TrainingPlanCalendar from "./TrainingPlanCalendar";
 import CompareColumns from "./CompareColumns";
-import { DEFAULT_COLOR } from "./utils";
+import { DEFAULT_COLOR, dayViewLabel } from "./utils";
 
 const THEME_KEY = "nutriscore-theme";
 // Mobile shows the current tab's name as the page title (desktop shows
@@ -32,6 +32,7 @@ export default function DashboardClient({ me }) {
   const martin = usePersonData("martin");
   const laura = usePersonData("laura");
   const [activeTab, setActiveTab] = useState("today");
+  const [dayOffset, setDayOffset] = useState(0); // food tab: 0 = today, 1 = yesterday … 6 (swiped on the calorie ring)
   const [openPanel, setOpenPanel] = useState(null); // null | 'goals' | 'settings' | 'recipes' | 'colour'
   const cameraTriggerRef = useRef(null);
   const [theme, setTheme] = useState({ mode: null, night: "dark" }); // mode: null (match device) | 'light' | 'dark' | 'green'
@@ -85,6 +86,7 @@ export default function DashboardClient({ me }) {
     // then switch to "today" so the photo preview/estimate flow is visible once picked.
     cameraTriggerRef.current?.();
     setActiveTab("today");
+    setDayOffset(0); // a fresh photo is today's food
   }
 
   const myData = me === "martin" ? martin : laura;
@@ -113,7 +115,7 @@ export default function DashboardClient({ me }) {
           <div>
             <h1>
               <span className="only-desktop">Nutriscore</span>
-              <span className="only-mobile">{TAB_TITLES[activeTab]}</span>
+              <span className="only-mobile">{activeTab === "today" ? dayViewLabel(dayOffset) : TAB_TITLES[activeTab]}</span>
             </h1>
             <TodayPlanStrip />
           </div>
@@ -188,6 +190,8 @@ export default function DashboardClient({ me }) {
             refreshSnacks={myData.refreshSnacks}
             refreshTarget={myData.refreshTarget}
             registerCameraTrigger={(fn) => (cameraTriggerRef.current = fn)}
+            dayOffset={dayOffset}
+            onDayOffsetChange={setDayOffset}
           />
         </div>
         <div hidden={activeTab !== "training"}>
@@ -225,7 +229,15 @@ export default function DashboardClient({ me }) {
         </button>
       </div>
 
-      <BottomNav active={activeTab} onChange={setActiveTab} />
+      <BottomNav
+        active={activeTab}
+        todayLabel={dayViewLabel(dayOffset)}
+        onChange={(key) => {
+          // Tapping the food tab again while it's on a past day jumps back to today.
+          if (key === "today" && activeTab === "today") setDayOffset(0);
+          setActiveTab(key);
+        }}
+      />
     </div>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trash2, Pencil, ListPlus } from "lucide-react";
-import { shortDateLabel, todayStr } from "./utils";
+import { Trash2, Pencil, ListPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { shortDateLabel, todayStr, dateDaysAgo, dayViewLabel, dayMonthLabel, DAY_VIEW_DAYS } from "./utils";
 import RecipePicker from "./RecipePicker";
 import { scaledIngredient, sumIngredients } from "./recipeMath";
 import FoodSearch from "./FoodSearch";
@@ -14,6 +14,7 @@ const RING_SIZE = 128;
 const RING_STROKE = 12;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRC = 2 * Math.PI * RING_RADIUS;
+const SWIPE_COMMIT_PX = 50; // how far a horizontal swipe must travel to change day
 
 const emptyForm = {
   description: "",
@@ -46,7 +47,17 @@ function newKey() {
   return Math.random().toString(36).slice(2);
 }
 
-export default function SnackSection({ personId, isMe, snacks, refreshSnacks, calorieTarget, proteinTarget, registerCameraTrigger }) {
+export default function SnackSection({
+  personId,
+  isMe,
+  snacks,
+  refreshSnacks,
+  calorieTarget,
+  proteinTarget,
+  registerCameraTrigger,
+  dayOffset: dayOffsetProp,
+  onDayOffsetChange
+}) {
   const [form, setForm] = useState(emptyForm);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -65,8 +76,14 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
 
-  const today = todayStr();
-  const todaysEntries = snacks.filter((s) => s.log_date === today);
+  // Which day the ring shows: 0 = today, up to DAY_VIEW_DAYS - 1 back. On a
+  // phone DashboardClient owns this (the bottom nav tab is named after it);
+  // the desktop columns just keep their own.
+  const [localOffset, setLocalOffset] = useState(0);
+  const dayOffset = dayOffsetProp ?? localOffset;
+  const setDayOffset = onDayOffsetChange ?? setLocalOffset;
+  const viewDate = dateDaysAgo(dayOffset);
+  const todaysEntries = snacks.filter((s) => s.log_date === viewDate);
   const mealTotal = todaysEntries.filter((s) => s.meal_type === "meal").reduce((sum, s) => sum + (Number(s.calories) || 0), 0);
   const snackTotal = todaysEntries.filter((s) => s.meal_type !== "meal").reduce((sum, s) => sum + (Number(s.calories) || 0), 0);
   const combinedTotal = mealTotal + snackTotal;
@@ -81,6 +98,67 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
   const ringOffset = RING_CIRC * (1 - ringPct);
   const isOver = balance != null && balance > 0;
   const ringColor = calorieTarget == null ? "var(--gridline)" : isOver ? "var(--status-warning)" : "var(--" + (personId === "laura" ? "series-laura" : "series-martin") + ")";
+
+  // Looking at yesterday is usually "I forgot to log something yesterday", so
+  // new entries default to the day on screen (the Date field shows it). Also
+  // rolls the default over to the new day if the app sits open past midnight.
+  useEffect(() => {
+    setForm((f) => (f.logDate === viewDate ? f : { ...f, logDate: viewDate }));
+  }, [viewDate]);
+
+  // Swipe the ring left/right to step through the last 7 days, like photos:
+  // swipe right (finger moves right) for the day before, left for the day
+  // after. Touch/pen only — on desktop the arrows and dots do it. touch-action
+  // pan-y on .day-swipe leaves vertical scrolling to the browser, which sends
+  // pointercancel if the gesture turns out to be a scroll.
+  const swipeRef = useRef(null);
+  const swipeAreaRef = useRef(null);
+  const [dragX, setDragX] = useState(0);
+
+  function goToDay(next, fromSide) {
+    const clamped = Math.max(0, Math.min(DAY_VIEW_DAYS - 1, next));
+    if (clamped === dayOffset) return;
+    setDayOffset(clamped);
+    const el = swipeAreaRef.current;
+    let reduce = false;
+    try {
+      reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    } catch {}
+    if (el && el.animate && !reduce) {
+      const from = fromSide ?? (clamped > dayOffset ? -1 : 1); // older days come in from the left
+      el.animate([{ transform: "translateX(" + from * 28 + "px)", opacity: 0 }, { transform: "none", opacity: 1 }], {
+        duration: 220,
+        easing: "cubic-bezier(0.23, 1, 0.32, 1)"
+      });
+    }
+  }
+
+  function onSwipeStart(e) {
+    if (e.pointerType === "mouse") return;
+    swipeRef.current = { x: e.clientX, y: e.clientY, axis: null, dx: 0 };
+  }
+
+  function onSwipeMove(e) {
+    const s = swipeRef.current;
+    if (!s) return;
+    const dx = e.clientX - s.x;
+    const dy = e.clientY - s.y;
+    if (!s.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) s.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (s.axis !== "x") return;
+    s.dx = dx;
+    // Rubber-band at the ends: no day after today, nothing before 7 days back.
+    const atEnd = (dx < 0 && dayOffset === 0) || (dx > 0 && dayOffset === DAY_VIEW_DAYS - 1);
+    setDragX(atEnd ? dx * 0.2 : dx);
+  }
+
+  function onSwipeEnd() {
+    const s = swipeRef.current;
+    swipeRef.current = null;
+    setDragX(0);
+    if (!s || s.axis !== "x" || Math.abs(s.dx) < SWIPE_COMMIT_PX) return;
+    if (s.dx > 0) goToDay(dayOffset + 1, -1);
+    else goToDay(dayOffset - 1, 1);
+  }
 
   useEffect(() => {
     if (!isMe || !registerCameraTrigger) return;
@@ -303,64 +381,104 @@ export default function SnackSection({ personId, isMe, snacks, refreshSnacks, ca
   return (
     <div className="card">
       <h3>
-        Meals & snacks <span className="muted">— today</span>
+        Meals & snacks{" "}
+        <span className="muted">
+          — {dayOffset < 2 ? dayViewLabel(dayOffset).toLowerCase() : dayViewLabel(dayOffset) + " " + dayMonthLabel(viewDate)}
+        </span>
       </h3>
 
-      <WeekCalorieTrend personId={personId} snacks={snacks} calorieTarget={calorieTarget} />
+      <WeekCalorieTrend
+        personId={personId}
+        snacks={snacks}
+        calorieTarget={calorieTarget}
+        selectedDate={viewDate}
+        onSelectDate={(date) => {
+          for (let n = 0; n < DAY_VIEW_DAYS; n++) if (dateDaysAgo(n) === date) goToDay(n);
+        }}
+      />
 
-      <div className="cal-ring-row">
-        <div className="cal-ring-figure">
-          <svg viewBox={"0 0 " + RING_SIZE + " " + RING_SIZE}>
-            <circle className="cal-ring-track" cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} strokeWidth={RING_STROKE} />
-            <circle
-              className="cal-ring-progress"
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={RING_RADIUS}
-              strokeWidth={RING_STROKE}
-              stroke={ringColor}
-              strokeDasharray={RING_CIRC}
-              strokeDashoffset={calorieTarget == null ? RING_CIRC : ringOffset}
-            />
-          </svg>
-          <div className="cal-ring-center">
-            {calorieTarget != null ? (
-              <>
-                <div className="cal-ring-value" style={isOver ? { color: "var(--status-warning)" } : undefined}>
-                  {isOver ? "+" + balance : Math.abs(balance)}
-                </div>
-                <div className="cal-ring-unit">{isOver ? "kcal over" : "kcal left"}</div>
-              </>
-            ) : (
-              <>
-                <div className="cal-ring-value">{combinedTotal ? Math.round(combinedTotal) : "—"}</div>
-                <div className="cal-ring-unit">{isMe ? "set target" : "kcal today"}</div>
-              </>
-            )}
+      <div
+        className="day-swipe"
+        ref={swipeAreaRef}
+        onPointerDown={onSwipeStart}
+        onPointerMove={onSwipeMove}
+        onPointerUp={onSwipeEnd}
+        onPointerCancel={onSwipeEnd}
+        style={dragX ? { transform: "translateX(" + dragX + "px)", opacity: 1 - Math.min(Math.abs(dragX), 160) / 400, transition: "none" } : undefined}
+      >
+        <div className="cal-ring-row">
+          <div className="cal-ring-figure">
+            <svg viewBox={"0 0 " + RING_SIZE + " " + RING_SIZE}>
+              <circle className="cal-ring-track" cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} strokeWidth={RING_STROKE} />
+              <circle
+                className="cal-ring-progress"
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RING_RADIUS}
+                strokeWidth={RING_STROKE}
+                stroke={ringColor}
+                strokeDasharray={RING_CIRC}
+                strokeDashoffset={calorieTarget == null ? RING_CIRC : ringOffset}
+              />
+            </svg>
+            <div className="cal-ring-center">
+              {calorieTarget != null ? (
+                <>
+                  <div className="cal-ring-value" style={isOver ? { color: "var(--status-warning)" } : undefined}>
+                    {isOver ? "+" + balance : Math.abs(balance)}
+                  </div>
+                  <div className="cal-ring-unit">{isOver ? "kcal over" : "kcal left"}</div>
+                </>
+              ) : (
+                <>
+                  <div className="cal-ring-value">{combinedTotal ? Math.round(combinedTotal) : "—"}</div>
+                  <div className="cal-ring-unit">{isMe ? "set target" : dayOffset === 0 ? "kcal today" : "kcal"}</div>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="macro-chip-col">
+            <div className="macro-chip">
+              <span className="m-label"><span className="m-dot" style={{ background: "var(--series-martin)" }} />Protein</span>
+              <span className="m-value">{proteinTarget != null ? Math.round(proteinTotal) + " / " + Math.round(proteinTarget) + " g" : Math.round(proteinTotal) + " g"}</span>
+            </div>
+            <div className="macro-chip">
+              <span className="m-label"><span className="m-dot" style={{ background: "var(--status-warning)" }} />Carbs</span>
+              <span className="m-value">{Math.round(carbsTotal)} g</span>
+            </div>
+            <div className="macro-chip">
+              <span className="m-label"><span className="m-dot" style={{ background: "var(--series-laura)" }} />Fat</span>
+              <span className="m-value">{Math.round(fatTotal)} g</span>
+            </div>
+            <div className="macro-chip">
+              <span className="m-label"><span className="m-dot" style={{ background: "var(--status-good)" }} />Fiber</span>
+              <span className="m-value">{Math.round(fiberTotal)} g</span>
+            </div>
           </div>
         </div>
-        <div className="macro-chip-col">
-          <div className="macro-chip">
-            <span className="m-label"><span className="m-dot" style={{ background: "var(--series-martin)" }} />Protein</span>
-            <span className="m-value">{proteinTarget != null ? Math.round(proteinTotal) + " / " + Math.round(proteinTarget) + " g" : Math.round(proteinTotal) + " g"}</span>
-          </div>
-          <div className="macro-chip">
-            <span className="m-label"><span className="m-dot" style={{ background: "var(--status-warning)" }} />Carbs</span>
-            <span className="m-value">{Math.round(carbsTotal)} g</span>
-          </div>
-          <div className="macro-chip">
-            <span className="m-label"><span className="m-dot" style={{ background: "var(--series-laura)" }} />Fat</span>
-            <span className="m-value">{Math.round(fatTotal)} g</span>
-          </div>
-          <div className="macro-chip">
-            <span className="m-label"><span className="m-dot" style={{ background: "var(--status-good)" }} />Fiber</span>
-            <span className="m-value">{Math.round(fiberTotal)} g</span>
-          </div>
+        <div className="split-line">
+          <span>Meals: <strong>{mealTotal ? Math.round(mealTotal) : 0} kcal</strong></span>
+          <span>Snacks: <strong>{snackTotal ? Math.round(snackTotal) : 0} kcal</strong></span>
         </div>
       </div>
-      <div className="split-line">
-        <span>Meals: <strong>{mealTotal ? Math.round(mealTotal) : 0} kcal</strong></span>
-        <span>Snacks: <strong>{snackTotal ? Math.round(snackTotal) : 0} kcal</strong></span>
+
+      <div className="day-nav" role="group" aria-label="Day shown">
+        <button type="button" className="day-nav-arrow" onClick={() => goToDay(dayOffset + 1)} disabled={dayOffset === DAY_VIEW_DAYS - 1} aria-label="Previous day">
+          <ChevronLeft size={16} strokeWidth={2} />
+        </button>
+        {Array.from({ length: DAY_VIEW_DAYS }, (_, i) => DAY_VIEW_DAYS - 1 - i).map((n) => (
+          <button
+            key={n}
+            type="button"
+            className={n === dayOffset ? "day-nav-dot active" : "day-nav-dot"}
+            onClick={() => goToDay(n)}
+            aria-label={dayViewLabel(n)}
+            aria-current={n === dayOffset ? "date" : undefined}
+          />
+        ))}
+        <button type="button" className="day-nav-arrow" onClick={() => goToDay(dayOffset - 1)} disabled={dayOffset === 0} aria-label="Next day">
+          <ChevronRight size={16} strokeWidth={2} />
+        </button>
       </div>
 
       {isMe && (

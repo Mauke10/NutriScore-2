@@ -10,7 +10,9 @@ const TABS = [
   { key: "compete", label: "Compete", Icon: Trophy }
 ];
 
-export default function BottomNav({ active, onChange }) {
+// todayLabel renames the first tab after the day the food tab is showing
+// ("Yesterday", "Sunday") when you've swiped the calorie ring back.
+export default function BottomNav({ active, onChange, todayLabel }) {
   return (
     <nav className="bottom-nav" aria-label="Sections">
       <div className="bottom-nav-inner">
@@ -23,7 +25,7 @@ export default function BottomNav({ active, onChange }) {
             aria-current={active === key ? "page" : undefined}
           >
             <Icon strokeWidth={2} />
-            <span>{label}</span>
+            <span>{key === "today" && todayLabel ? todayLabel : label}</span>
           </button>
         ))}
       </div>
