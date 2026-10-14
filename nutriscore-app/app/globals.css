@@ -643,6 +643,26 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .split-line { display: flex; gap: var(--space-3-5); font-size: var(--text-sm); color: var(--text-secondary); margin: -4px 0 var(--space-3-5); }
 .split-line strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
 
+/* Day view (SnackSection): swipe the ring + macros sideways to step through
+   the last 7 days. pan-y keeps vertical scrolling with the browser; the dots
+   and arrows below do the same for mouse and keyboard. */
+.day-swipe { touch-action: pan-y; }
+.day-nav { display: flex; align-items: center; justify-content: center; gap: var(--space-0-5); margin: calc(-1 * var(--space-2)) 0 var(--space-3); }
+.day-nav-arrow {
+  display: grid; place-items: center; background: transparent; border: none; padding: var(--space-1);
+  border-radius: var(--radius-sm); color: var(--text-muted); cursor: pointer;
+}
+.day-nav-arrow:disabled { opacity: 0.3; cursor: default; }
+.day-nav-dot { display: grid; place-items: center; width: 20px; height: 24px; background: transparent; border: none; padding: 0; cursor: pointer; }
+.day-nav-dot::before {
+  content: ""; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--gridline);
+  transition: width 180ms var(--ease-out), background 180ms var(--ease-out);
+}
+.day-nav-dot.active::before { width: 16px; background: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .day-nav-dot::before { transition: none; }
+}
+
 /* Log entries as card rows (replaces table) */
 /* One grouped surface with hairlines between rows, not a stack of
    separately outlined boxes — the list reads as one object. */
@@ -654,6 +674,24 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .log-cards > .log-card-row + .log-card-row { box-shadow: inset 0 1px 0 var(--gridline); }
 .log-card-row { display: flex; align-items: center; gap: var(--space-2); background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-2) var(--space-2-5); }
 .log-card-main { flex: 1; min-width: 0; }
+.log-card-main.is-tappable { cursor: pointer; border-radius: var(--radius-sm); }
+.log-card-main.is-tappable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Entry window (tap a logged entry): quick actions above the edit form */
+.entry-quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin-bottom: var(--space-4); }
+.entry-action {
+  display: flex; align-items: flex-start; gap: var(--space-2); text-align: left;
+  background: var(--page); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: var(--space-2-5) var(--space-3); color: var(--text-primary); font-size: var(--text-md); cursor: pointer;
+}
+.entry-action > svg { flex-shrink: 0; color: var(--accent); margin-top: var(--space-0-5); }
+.entry-action > span { display: flex; flex-direction: column; gap: var(--space-0-5); min-width: 0; }
+.entry-action strong { font-weight: 700; }
+.entry-action-sub { font-size: var(--text-xs); color: var(--text-muted); font-weight: 500; }
+.entry-action:disabled { opacity: 0.6; cursor: default; }
+.entry-action.is-done { cursor: default; }
+.entry-action.is-done > svg { color: var(--status-good); }
+.entry-edit-label { font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: var(--space-2); }
 .log-card-top { display: flex; align-items: baseline; gap: var(--space-1-5); min-width: 0; }
 .log-card-desc { font-weight: 600; font-size: var(--text-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 /* The date sits at the end of the macros line, not next to the title, so a
@@ -841,11 +879,11 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
    expansion is kept tiny so neighbouring buttons (edit + remove) don't
    steal each other's taps. */
 .log-card-edit, .log-card-remove, .ingredient-remove, .modal-close,
-.plan-cal-nav-btn, .plan-cal-today-btn, button.danger {
+.plan-cal-nav-btn, .plan-cal-today-btn, button.danger, .day-nav-arrow, .day-nav-dot {
   position: relative;
 }
 .log-card-edit::after, .log-card-remove::after, .ingredient-remove::after, .modal-close::after,
-.plan-cal-nav-btn::after, .plan-cal-today-btn::after, button.danger::after {
+.plan-cal-nav-btn::after, .plan-cal-today-btn::after, button.danger::after, .day-nav-arrow::after, .day-nav-dot::after {
   content: ""; position: absolute; top: 50%; left: -1px; right: -1px;
   height: 44px; transform: translateY(-50%);
 }
@@ -1099,3 +1137,37 @@ form .recipe-ing-grams input { width: 64px; text-align: right; padding: var(--sp
 .recipe-footer-actions button.danger { display: inline-flex; align-items: center; gap: var(--space-1); }
 .recipe-confirm { display: inline-flex; align-items: center; gap: var(--space-1-5); font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); }
 .recipe-footer-error { flex-basis: 100%; }
+
+/* Measurements card (MeasurementsSection.js, Body tab): chips to choose what
+   you track, folded away behind "What you track" once set up; rows reuse
+   .group-list/.group-row with a small trend line. */
+.measure-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); }
+.measure-head h3 { margin-bottom: var(--space-2); }
+.measure-log-btn {
+  display: inline-flex; align-items: center; gap: var(--space-1); background: transparent; border: none; padding: var(--space-1) 0;
+  color: var(--accent); font-weight: 600; font-size: var(--text-sm); cursor: pointer;
+}
+.measure-picker-toggle {
+  display: flex; align-items: center; gap: var(--space-1); background: transparent; border: none; padding: var(--space-1) 0;
+  color: var(--text-muted); cursor: pointer; margin-bottom: var(--space-2);
+}
+.measure-picker-toggle .overline { margin-bottom: 0; }
+.measure-chevron { transition: transform 180ms var(--ease-out); }
+.measure-chevron.is-open { transform: rotate(180deg); }
+.measure-chips { display: flex; flex-wrap: wrap; gap: var(--space-1-5); margin-bottom: var(--space-3-5); }
+.measure-chip {
+  display: inline-flex; align-items: center; gap: var(--space-1); border: 1px solid var(--border); background: var(--surface-raised);
+  border-radius: var(--radius-full); padding: var(--space-1-5) var(--space-3); font-size: var(--text-sm); font-weight: 600;
+  color: var(--text-secondary); cursor: pointer; transition: background 150ms var(--ease-out), color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+}
+.measure-chip.on { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.measure-chip.add { border-style: dashed; color: var(--accent); background: transparent; }
+.measure-chip-input {
+  width: 150px; border-radius: var(--radius-full); padding: var(--space-1-5) var(--space-3); font-size: var(--text-sm);
+}
+.measure-spark { width: 56px; height: 20px; flex-shrink: 0; }
+.measure-spark polyline { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.measure-card .group-list { margin-top: var(--space-1); }
+@media (prefers-reduced-motion: reduce) {
+  .measure-chevron, .measure-chip { transition: none; }
+}

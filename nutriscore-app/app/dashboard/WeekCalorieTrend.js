@@ -1,6 +1,6 @@
 "use client";
 
-import { todayStr, localDateStr } from "./utils";
+import { dateDaysAgo } from "./utils";
 
 const WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 const BAR_W = 20;
@@ -8,16 +8,6 @@ const GAP = 8;
 const PAD = 4;
 const CHART_H = 56;
 const LABEL_H = 16;
-
-function isoDateDaysAgo(n) {
-  // localDateStr, not toISOString — Tallinn is UTC+2/+3, so in the ~2-3
-  // hours after local midnight, toISOString().slice(0,10) still reports
-  // yesterday's UTC date. That would silently exclude anything logged right
-  // after midnight from this whole 7-day window until the UTC day caught up.
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return localDateStr(d);
-}
 
 function median(nums) {
   if (!nums.length) return 0;
@@ -33,10 +23,16 @@ function median(nums) {
 // look at the ring. Reuses whatever's already in `snacks` (usePersonData
 // already fetches the last ~300 entries across all dates), so no extra
 // fetch is needed just for this.
-export default function WeekCalorieTrend({ personId, snacks, calorieTarget }) {
-  const today = todayStr();
+//
+// The ringed bar is the day the calorie ring below is showing (today unless
+// you've swiped back); tapping a bar jumps the ring to that day.
+export default function WeekCalorieTrend({ personId, snacks, calorieTarget, selectedDate, onSelectDate }) {
   const days = [];
-  for (let i = 6; i >= 0; i--) days.push(isoDateDaysAgo(i));
+  // dateDaysAgo, not toISOString — Tallinn is UTC+2/+3, so in the ~2-3 hours
+  // after local midnight toISOString().slice(0,10) still reports yesterday's
+  // UTC date and would drop anything logged right after midnight.
+  for (let i = 6; i >= 0; i--) days.push(dateDaysAgo(i));
+  const ringedDate = selectedDate || days[days.length - 1];
 
   const totalsByDay = days.map((date) => {
     const entries = snacks.filter((s) => s.log_date === date);
@@ -93,15 +89,22 @@ export default function WeekCalorieTrend({ personId, snacks, calorieTarget }) {
           const h = Math.max(2, Math.min(1, d.total / maxVal) * CHART_H);
           const x = PAD + i * (BAR_W + GAP);
           const y = CHART_H - h;
-          const isToday = d.date === today;
+          const isSelected = d.date === ringedDate;
           const isOver = calorieTarget != null && d.total > calorieTarget;
           const fill = !d.tracked ? "var(--gridline)" : isOver ? "var(--status-warning)" : seriesVar;
           const weekday = WEEKDAY_LETTERS[new Date(d.date + "T12:00:00").getDay()];
           return (
-            <g key={d.date} opacity={isToday ? 1 : 0.68}>
+            <g
+              key={d.date}
+              opacity={isSelected ? 1 : 0.68}
+              onClick={onSelectDate ? () => onSelectDate(d.date) : undefined}
+              style={onSelectDate ? { cursor: "pointer" } : undefined}
+            >
+              {/* Full-height invisible hit area — a 2px "not logged" bar is too small to tap. */}
+              {onSelectDate && <rect x={x - GAP / 2} y={0} width={BAR_W + GAP} height={CHART_H + LABEL_H} fill="transparent" />}
               <title>{d.date} — {d.tracked ? Math.round(d.total) + " kcal" : "not logged"}</title>
               <rect x={x} y={y} width={BAR_W} height={h} rx={5} fill={fill} />
-              {isToday && (
+              {isSelected && (
                 <rect x={x - 1.5} y={y - 1.5} width={BAR_W + 3} height={h + 3} rx={6.5} fill="none" stroke={fill} strokeWidth={1.5} opacity={0.55} />
               )}
               <text x={x + BAR_W / 2} y={CHART_H + 12} textAnchor="middle" className="week-trend-daylabel">
