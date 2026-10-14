@@ -11,6 +11,7 @@ import SnackSection from "./SnackSection";
 import TrainingSection from "./TrainingSection";
 import WeeklySection from "./WeeklySection";
 import BloodworkSection from "./BloodworkSection";
+import MeasurementsSection from "./MeasurementsSection";
 import TopMenu from "./TopMenu";
 import GoalsPanel from "./GoalsPanel";
 import SettingsPanel from "./SettingsPanel";
@@ -214,6 +215,7 @@ export default function DashboardClient({ me }) {
         </div>
         <div hidden={activeTab !== "body"}>
           <WeeklySection personId={me} isMe weekly={myData.weekly} refreshWeekly={myData.refreshWeekly} snacks={myData.snacks} />
+          <MeasurementsSection personId={me} isMe />
           <BloodworkSection personId={me} isMe bloodwork={myData.bloodwork} refreshBloodwork={myData.refreshBloodwork} />
         </div>
         <div hidden={activeTab !== "compete"}>

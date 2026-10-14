@@ -1,6 +1,7 @@
 "use client";
 
 import SnackSection from "./SnackSection";
+import MeasurementsSection from "./MeasurementsSection";
 import WeeklySection from "./WeeklySection";
 import TrainingSection from "./TrainingSection";
 import BloodworkSection from "./BloodworkSection";
@@ -47,6 +48,7 @@ export default function PersonColumn({ personId, displayName, seriesVar, isMe, d
         refreshTarget={refreshTarget}
       />
       <WeeklySection personId={personId} isMe={isMe} weekly={weekly} refreshWeekly={refreshWeekly} snacks={snacks} />
+      <MeasurementsSection personId={personId} isMe={isMe} />
       <TrainingSection
         personId={personId}
         isMe={isMe}

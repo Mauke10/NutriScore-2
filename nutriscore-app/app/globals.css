@@ -1137,3 +1137,37 @@ form .recipe-ing-grams input { width: 64px; text-align: right; padding: var(--sp
 .recipe-footer-actions button.danger { display: inline-flex; align-items: center; gap: var(--space-1); }
 .recipe-confirm { display: inline-flex; align-items: center; gap: var(--space-1-5); font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); }
 .recipe-footer-error { flex-basis: 100%; }
+
+/* Measurements card (MeasurementsSection.js, Body tab): chips to choose what
+   you track, folded away behind "What you track" once set up; rows reuse
+   .group-list/.group-row with a small trend line. */
+.measure-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); }
+.measure-head h3 { margin-bottom: var(--space-2); }
+.measure-log-btn {
+  display: inline-flex; align-items: center; gap: var(--space-1); background: transparent; border: none; padding: var(--space-1) 0;
+  color: var(--accent); font-weight: 600; font-size: var(--text-sm); cursor: pointer;
+}
+.measure-picker-toggle {
+  display: flex; align-items: center; gap: var(--space-1); background: transparent; border: none; padding: var(--space-1) 0;
+  color: var(--text-muted); cursor: pointer; margin-bottom: var(--space-2);
+}
+.measure-picker-toggle .overline { margin-bottom: 0; }
+.measure-chevron { transition: transform 180ms var(--ease-out); }
+.measure-chevron.is-open { transform: rotate(180deg); }
+.measure-chips { display: flex; flex-wrap: wrap; gap: var(--space-1-5); margin-bottom: var(--space-3-5); }
+.measure-chip {
+  display: inline-flex; align-items: center; gap: var(--space-1); border: 1px solid var(--border); background: var(--surface-raised);
+  border-radius: var(--radius-full); padding: var(--space-1-5) var(--space-3); font-size: var(--text-sm); font-weight: 600;
+  color: var(--text-secondary); cursor: pointer; transition: background 150ms var(--ease-out), color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+}
+.measure-chip.on { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.measure-chip.add { border-style: dashed; color: var(--accent); background: transparent; }
+.measure-chip-input {
+  width: 150px; border-radius: var(--radius-full); padding: var(--space-1-5) var(--space-3); font-size: var(--text-sm);
+}
+.measure-spark { width: 56px; height: 20px; flex-shrink: 0; }
+.measure-spark polyline { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.measure-card .group-list { margin-top: var(--space-1); }
+@media (prefers-reduced-motion: reduce) {
+  .measure-chevron, .measure-chip { transition: none; }
+}

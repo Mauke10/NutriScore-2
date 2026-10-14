@@ -161,8 +161,23 @@ create table if not exists settings (
   swim_goal_km numeric,
   bike_goal_km numeric,
   run_goal_km numeric,
-  accent_color text
+  accent_color text,
+  measurement_parts text[] not null default '{}' -- body parts tracked on the Measurements card, in order
 );
+
+-- Body measurements (Body tab). One row per person per day per part; `part`
+-- is a key from app/dashboard/measurementParts.js or "custom:<name>".
+-- Re-logging the same day overwrites (upsert on the unique key).
+create table if not exists body_measurements (
+  id uuid primary key default gen_random_uuid(),
+  person_id text not null references people(id),
+  measured_on date not null,
+  part text not null,
+  value numeric not null,
+  created_at timestamptz not null default now(),
+  unique (person_id, measured_on, part)
+);
+create index if not exists body_measurements_person_part_idx on body_measurements (person_id, part, measured_on);
 
 -- Manually-logged workouts, kept separate from the Strava-synced
 -- training_volume table (see below) so a re-sync never overwrites or
@@ -242,3 +257,4 @@ alter table daily_notes enable row level security;
 alter table training_plan enable row level security;
 alter table training_sessions enable row level security;
 alter table foods enable row level security;
+alter table body_measurements enable row level security;
