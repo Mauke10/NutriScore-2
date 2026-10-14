@@ -10,10 +10,10 @@ import { foodIcon } from "../../lib/foodIcons";
 const blankRecipe = { id: null, name: "", meal_type: "meal", portion_note: "", ingredients: [] };
 
 const MACROS = [
-  ["protein", "Protein", "P", "var(--series-martin)"],
-  ["carbs", "Carbs", "C", "var(--status-warning)"],
-  ["fat", "Fat", "F", "var(--series-laura)"],
-  ["fiber", "Fiber", "Fi", "var(--status-good)"]
+  ["protein", "Protein", "P", "var(--macro-protein)"],
+  ["carbs", "Carbs", "C", "var(--macro-carbs)"],
+  ["fat", "Fat", "F", "var(--macro-fat)"],
+  ["fiber", "Fiber", "Fi", "var(--macro-fiber)"]
 ];
 
 function newKey() {

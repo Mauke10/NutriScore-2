@@ -91,14 +91,15 @@ export default function WeekCalorieTrend({ personId, snacks, calorieTarget, sele
           const y = CHART_H - h;
           const isSelected = d.date === ringedDate;
           const isOver = calorieTarget != null && d.total > calorieTarget;
-          const fill = !d.tracked ? "var(--gridline)" : isOver ? "var(--status-warning)" : seriesVar;
+          const fill = !d.tracked ? "var(--gridline)" : isOver ? "var(--over)" : seriesVar;
           const weekday = WEEKDAY_LETTERS[new Date(d.date + "T12:00:00").getDay()];
           return (
             <g
               key={d.date}
-              opacity={isSelected ? 1 : 0.68}
+              // Other days fade by --bar-dim (per scheme in globals.css: plain
+              // opacity turns orange brown and pink maroon on a dark page).
+              style={{ opacity: isSelected ? 1 : "var(--bar-dim)", cursor: onSelectDate ? "pointer" : undefined }}
               onClick={onSelectDate ? () => onSelectDate(d.date) : undefined}
-              style={onSelectDate ? { cursor: "pointer" } : undefined}
             >
               {/* Full-height invisible hit area — a 2px "not logged" bar is too small to tap. */}
               {onSelectDate && <rect x={x - GAP / 2} y={0} width={BAR_W + GAP} height={CHART_H + LABEL_H} fill="transparent" />}
