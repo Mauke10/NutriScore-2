@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trash2, Pencil, ListPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, Pencil, ListPlus, ChevronLeft, ChevronRight, CopyPlus, BookmarkPlus, Check } from "lucide-react";
 import { shortDateLabel, todayStr, dateDaysAgo, dayViewLabel, dayMonthLabel, DAY_VIEW_DAYS } from "./utils";
 import RecipePicker from "./RecipePicker";
 import { scaledIngredient, sumIngredients } from "./recipeMath";
@@ -75,6 +75,8 @@ export default function SnackSection({
   const [editForm, setEditForm] = useState(emptyEditForm);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
+  const [editBusy, setEditBusy] = useState(null); // null | 'repeat' | 'recipe' — the side action in flight
+  const [savedRecipeName, setSavedRecipeName] = useState(""); // set once "Save as recipe" succeeds
 
   // Which day the ring shows: 0 = today, up to DAY_VIEW_DAYS - 1 back. On a
   // phone DashboardClient owns this (the bottom nav tab is named after it);
@@ -335,6 +337,7 @@ export default function SnackSection({
       logDate: entry.log_date || todayStr()
     });
     setEditError("");
+    setSavedRecipeName("");
   }
 
   function closeEdit() {
@@ -373,6 +376,84 @@ export default function SnackSection({
       setEditError(err.message);
     } finally {
       setEditSaving(false);
+    }
+  }
+
+  // "Log again": the same food, eaten again — a new entry with the values in
+  // the edit window, dated the day on screen (today unless you've swiped
+  // back). Keeps the recipe link so it counts as that recipe being used.
+  async function repeatEntry() {
+    if (!editForm.description.trim() || editForm.calories === "") {
+      setEditError("Need at least a description and a calorie number.");
+      return;
+    }
+    setEditBusy("repeat");
+    setEditError("");
+    try {
+      const fd = new FormData();
+      fd.append("description", editForm.description.trim());
+      fd.append("calories", editForm.calories);
+      fd.append("proteinG", editForm.proteinG);
+      fd.append("carbsG", editForm.carbsG);
+      fd.append("fatG", editForm.fatG);
+      fd.append("fiberG", editForm.fiberG);
+      fd.append("mealType", editForm.mealType);
+      fd.append("logDate", viewDate);
+      if (editing.recipe_id) fd.append("recipeId", editing.recipe_id);
+      const res = await fetch("/api/snacks", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Couldn't log it again");
+      setEditing(null);
+      await refreshSnacks();
+    } catch (err) {
+      setEditError(err.message);
+    } finally {
+      setEditBusy(null);
+    }
+  }
+
+  // "Save as recipe" after the fact — for when you forgot to tick the box
+  // while logging. Logs don't keep an ingredient list, so this saves the
+  // totals (editable later in Recipes). Same find-or-update-by-name as the
+  // log form's checkbox, then links the entry to the recipe.
+  async function saveEntryAsRecipe() {
+    const name = editForm.description.trim();
+    if (!name || editForm.calories === "") {
+      setEditError("Need at least a description and a calorie number.");
+      return;
+    }
+    setEditBusy("recipe");
+    setEditError("");
+    try {
+      const res = await fetch("/api/recipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          mealType: editForm.mealType,
+          calories: editForm.calories,
+          proteinG: editForm.proteinG,
+          carbsG: editForm.carbsG,
+          fatG: editForm.fatG,
+          fiberG: editForm.fiberG
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Couldn't save the recipe");
+      if (data.id) {
+        await fetch("/api/snacks", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editing.id, recipeId: data.id })
+        });
+        setEditing((e) => (e ? { ...e, recipe_id: data.id } : e));
+      }
+      setSavedRecipeName(name);
+      await refreshSnacks();
+    } catch (err) {
+      setEditError(err.message);
+    } finally {
+      setEditBusy(null);
     }
   }
 
@@ -648,7 +729,23 @@ export default function SnackSection({
         {recent.length === 0 && <div className="log-cards-empty">Nothing logged yet.</div>}
         {recent.map((s) => (
           <div className="log-card-row" key={s.id}>
-            <div className="log-card-main">
+            <div
+              className={isMe ? "log-card-main is-tappable" : "log-card-main"}
+              onClick={isMe ? () => openEdit(s) : undefined}
+              onKeyDown={
+                isMe
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openEdit(s);
+                      }
+                    }
+                  : undefined
+              }
+              role={isMe ? "button" : undefined}
+              tabIndex={isMe ? 0 : undefined}
+              aria-label={isMe ? "Open " + s.description : undefined}
+            >
               <div className="log-card-top">
                 <span className={s.meal_type === "meal" ? "type-badge meal" : "type-badge snack"}>{s.meal_type === "meal" ? "Meal" : "Snack"}</span>
                 <span className="log-card-desc">{s.description}</span>
@@ -685,7 +782,34 @@ export default function SnackSection({
       </div>
 
       {editing && (
-        <Modal title="Edit entry" onClose={closeEdit}>
+        <Modal title="Entry" onClose={closeEdit}>
+          <div className="entry-quick-actions">
+            <button type="button" className="entry-action" onClick={repeatEntry} disabled={editBusy !== null}>
+              <CopyPlus size={18} strokeWidth={2} />
+              <span>
+                <strong>{editBusy === "repeat" ? "Logging…" : "Log again"}</strong>
+                <span className="entry-action-sub">Same food, {dayOffset === 0 ? "today" : dayOffset === 1 ? "yesterday" : dayViewLabel(dayOffset)}</span>
+              </span>
+            </button>
+            {editing.recipe_id ? (
+              <div className="entry-action is-done" role="status">
+                <Check size={18} strokeWidth={2} />
+                <span>
+                  <strong>{savedRecipeName ? "Saved to recipes" : "Saved recipe"}</strong>
+                  <span className="entry-action-sub">{savedRecipeName ? "“" + savedRecipeName + "”" : "Pick it from the meal search"}</span>
+                </span>
+              </div>
+            ) : (
+              <button type="button" className="entry-action" onClick={saveEntryAsRecipe} disabled={editBusy !== null}>
+                <BookmarkPlus size={18} strokeWidth={2} />
+                <span>
+                  <strong>{editBusy === "recipe" ? "Saving…" : "Save as recipe"}</strong>
+                  <span className="entry-action-sub">For quick logging next time</span>
+                </span>
+              </button>
+            )}
+          </div>
+          <div className="entry-edit-label">Edit this entry</div>
           <form onSubmit={saveEdit}>
             <div className="field wide">
               <div className="segmented">

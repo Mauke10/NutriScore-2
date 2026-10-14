@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseServer } from "../../../lib/supabase";
 import { currentPerson } from "../../../lib/auth";
-import { bumpFoodUse, normalizeIngredients, replaceRecipeIngredients } from "../../../lib/recipeIngredients";
+import { bumpFoodUse, isUuid, normalizeIngredients, replaceRecipeIngredients } from "../../../lib/recipeIngredients";
 
 const BUCKET = "snack-photos";
 
@@ -143,7 +143,9 @@ export async function POST(request) {
 }
 
 // PATCH /api/snacks — JSON body { id, description?, calories?, proteinG?,
-// carbsG?, fatG?, fiberG?, mealType?, logDate?, notes? }. Only the fields
+// carbsG?, fatG?, fiberG?, mealType?, logDate?, notes?, recipeId? }.
+// recipeId links the entry to a recipe saved from it afterwards ("Save as
+// recipe" in the edit window). Only the fields
 // present get touched; only your own entries can be edited. For fixing a
 // mistake after the fact (wrong meal/snack tag, a typo'd calorie number),
 // not for changing who it belongs to or its photo/recipe link.
@@ -179,6 +181,7 @@ export async function PATCH(request) {
   if (body.mealType === "meal" || body.mealType === "snack") row.meal_type = body.mealType;
   if (typeof body.logDate === "string" && body.logDate) row.log_date = body.logDate;
   if (typeof body.notes === "string") row.notes = body.notes;
+  if ("recipeId" in body) row.recipe_id = isUuid(body.recipeId) ? body.recipeId : null;
 
   if (Object.keys(row).length === 0) {
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
