@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 import { supabaseServer } from "../../../lib/supabase";
 import { currentPerson } from "../../../lib/auth";
 import { bumpFoodUse, isUuid, normalizeIngredients, replaceRecipeIngredients } from "../../../lib/recipeIngredients";
 
-const BUCKET = "snack-photos";
 
 // GET /api/snacks?person=martin&limit=300 — optionally &date=YYYY-MM-DD for
 // just one day, or &mealType=meal|snack to filter to one or the other.
@@ -43,7 +41,7 @@ export async function GET(request) {
 // also save/update this as a recipe under `description`'s name), ingredients
 // (optional JSON array, when it was built from ingredients — saved onto the
 // recipe if saveAsRecipe is set, and counts towards each food's use_count so
-// your usual foods rank first in search), and an optional "photo" file.
+// your usual foods rank first in search).
 // Always logs under the caller's own person_id.
 export async function POST(request) {
   const me = currentPerson();
@@ -63,23 +61,6 @@ export async function POST(request) {
   }
 
   const supabase = supabaseServer();
-  let photoUrl = null;
-
-  const photo = formData.get("photo");
-  if (photo && typeof photo !== "string" && photo.size > 0) {
-    const ext = (photo.type && photo.type.split("/")[1]) || "jpg";
-    const path = me + "/" + crypto.randomUUID() + "." + ext;
-    const buffer = Buffer.from(await photo.arrayBuffer());
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, buffer, { contentType: photo.type || "image/jpeg" });
-    if (uploadError) {
-      return NextResponse.json({ error: "Photo upload failed: " + uploadError.message }, { status: 500 });
-    }
-    const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    photoUrl = pub.publicUrl;
-  }
-
   const mealTypeRaw = (formData.get("mealType") || "snack").toString();
   const mealType = mealTypeRaw === "meal" ? "meal" : "snack";
   const recipeId = (formData.get("recipeId") || "").toString() || null;
@@ -106,8 +87,7 @@ export async function POST(request) {
     notes: (formData.get("notes") || "").toString(),
     meal_type: mealType,
     recipe_id: recipeId,
-    source: photoUrl ? "photo" : "manual",
-    photo_url: photoUrl
+    source: "manual"
   };
 
   const { error } = await supabase.from("food_logs").insert(row);
@@ -148,7 +128,7 @@ export async function POST(request) {
 // recipe" in the edit window). Only the fields
 // present get touched; only your own entries can be edited. For fixing a
 // mistake after the fact (wrong meal/snack tag, a typo'd calorie number),
-// not for changing who it belongs to or its photo/recipe link.
+// not for changing who it belongs to or its recipe link.
 export async function PATCH(request) {
   const me = currentPerson();
   if (!me) return NextResponse.json({ error: "Not logged in" }, { status: 401 });

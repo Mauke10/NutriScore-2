@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera } from "lucide-react";
 import { usePersonData } from "./usePersonData";
 import Competition from "./Competition";
 import PersonColumn from "./PersonColumn";
@@ -35,7 +34,6 @@ export default function DashboardClient({ me }) {
   const [activeTab, setActiveTab] = useState("today");
   const [dayOffset, setDayOffset] = useState(0); // food tab: 0 = today, 1 = yesterday … 6 (swiped on the calorie ring)
   const [openPanel, setOpenPanel] = useState(null); // null | 'goals' | 'settings' | 'recipes' | 'colour'
-  const cameraTriggerRef = useRef(null);
   // Colour scheme for this device: { mode: 'day' | 'night' | null (follow
   // the device), day, night } — see lib/theme.js. Read straight from storage
   // on first render (the pre-paint script in layout.js already applied it),
@@ -78,14 +76,6 @@ export default function DashboardClient({ me }) {
 
   function handleThemeChange(next) {
     setTheme(normalizeTheme(next));
-  }
-
-  function openQuickCamera() {
-    // Fire the file picker synchronously (within the click's user-activation window),
-    // then switch to "today" so the photo preview/estimate flow is visible once picked.
-    cameraTriggerRef.current?.();
-    setActiveTab("today");
-    setDayOffset(0); // a fresh photo is today's food
   }
 
   const myData = me === "martin" ? martin : laura;
@@ -188,7 +178,6 @@ export default function DashboardClient({ me }) {
             snacks={myData.snacks}
             refreshSnacks={myData.refreshSnacks}
             refreshTarget={myData.refreshTarget}
-            registerCameraTrigger={(fn) => (cameraTriggerRef.current = fn)}
             dayOffset={dayOffset}
             onDayOffsetChange={setDayOffset}
           />
@@ -224,9 +213,6 @@ export default function DashboardClient({ me }) {
           {!loading && <CompareColumns martin={martin} laura={laura} />}
         </div>
 
-        <button type="button" className="fab-camera" hidden={activeTab !== "today"} onClick={openQuickCamera} aria-label="Log a photo">
-          <Camera strokeWidth={2} />
-        </button>
       </div>
 
       <BottomNav
