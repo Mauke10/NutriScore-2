@@ -32,6 +32,20 @@ export async function GET(request) {
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // "Laura sees my meals" off (settings.share_meals = false): the other
+  // person gets the numbers but not what was eaten. Checked here, on the
+  // server, so no screen can leak it. If the setting can't be read, share —
+  // that's how it behaved before the setting existed.
+  if (person !== me) {
+    const { data: prefs } = await supabase.from("settings").select("share_meals").eq("person_id", person).maybeSingle();
+    if (prefs && prefs.share_meals === false) {
+      return NextResponse.json({
+        entries: data.map((e) => ({ ...e, description: e.meal_type === "meal" ? "Meal" : "Snack", notes: "", recipe_id: null, hidden: true })),
+        mealsHidden: true
+      });
+    }
+  }
   return NextResponse.json({ entries: data });
 }
 

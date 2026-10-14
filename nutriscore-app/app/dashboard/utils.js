@@ -9,13 +9,46 @@ export function localDateStr(d) {
   return y + "-" + m + "-" + day;
 }
 
+// "Day ends at" (drawer → Settings): food logged before this hour still
+// counts for the day before, so a 01:00 snack after a late session lands on
+// the evening it belongs to. 0 = midnight, the default. Set from the signed-in
+// person's settings (setDayEndHour) and cached on the device so the first
+// render already uses it. Everything that asks "what day is it" for food goes
+// through foodNow() below.
+const DAY_END_KEY = "nutriscore-day-end-hour";
+let dayEndHour = 0;
+try {
+  if (typeof window !== "undefined") dayEndHour = Math.min(4, Math.max(0, Number(localStorage.getItem(DAY_END_KEY)) || 0));
+} catch {
+  // storage blocked — midnight it is
+}
+
+export function setDayEndHour(h) {
+  dayEndHour = Math.min(4, Math.max(0, Number(h) || 0));
+  try {
+    localStorage.setItem(DAY_END_KEY, String(dayEndHour));
+  } catch {
+    // ignore
+  }
+}
+
+export function getDayEndHour() {
+  return dayEndHour;
+}
+
+// "Now", shifted back by the day-end hour: at 01:30 with day end 03:00 this
+// is still yesterday evening as far as dates go.
+function foodNow() {
+  return new Date(Date.now() - dayEndHour * 3600 * 1000);
+}
+
 export function todayStr() {
-  return localDateStr(new Date());
+  return localDateStr(foodNow());
 }
 
 // YYYY-MM-DD for n days before today, local time (see CLAUDE.md on dates).
 export function dateDaysAgo(n) {
-  const d = new Date();
+  const d = foodNow();
   d.setDate(d.getDate() - n);
   return localDateStr(d);
 }
@@ -39,9 +72,7 @@ export function dayViewLabel(n) {
 export function shortDateLabel(ymd) {
   if (!ymd) return "";
   if (ymd === todayStr()) return "Today";
-  const y = new Date();
-  y.setDate(y.getDate() - 1);
-  if (ymd === localDateStr(y)) return "Yesterday";
+  if (ymd === dateDaysAgo(1)) return "Yesterday";
   return dayMonthLabel(ymd);
 }
 
@@ -109,7 +140,7 @@ export function proteinStreak(snacks, proteinTarget) {
     totals[s.log_date] = (totals[s.log_date] || 0) + (Number(s.protein_g) || 0);
   }
 
-  const d = new Date();
+  const d = foodNow();
   const todayKey = localDateStr(d);
   if (!(totals[todayKey] != null && totals[todayKey] >= target)) {
     // Today doesn't count yet (not logged, or logged but short) — start

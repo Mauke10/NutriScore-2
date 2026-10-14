@@ -10,6 +10,7 @@ export function usePersonData(personId) {
   const [weekly, setWeekly] = useState([]);
   const [bloodwork, setBloodwork] = useState([]);
   const [snacks, setSnacks] = useState([]);
+  const [mealsHidden, setMealsHidden] = useState(false); // the other person shares totals only (settings.share_meals off)
   const [training, setTraining] = useState([]);
   const [sessions, setSessions] = useState([]); // manually-logged workouts, this month
   const [calorieTarget, setCalorieTarget] = useState(null);
@@ -37,6 +38,7 @@ export function usePersonData(personId) {
     const res = await fetch("/api/snacks?person=" + personId);
     const data = await res.json();
     setSnacks(data.entries || []);
+    setMealsHidden(!!data.mealsHidden);
   }, [personId]);
 
   const refreshTraining = useCallback(async () => {
@@ -108,6 +110,7 @@ export function usePersonData(personId) {
     weekly,
     bloodwork,
     snacks,
+    mealsHidden,
     training,
     sessions,
     calorieTarget,

@@ -404,7 +404,6 @@ button.danger:active,
   transform: var(--press-scale);
   opacity: 1;
 }
-.dropdown-item:active,
 .recipe-option:active,
 .recipe-card:active,
 .recipe-ing-toggle:active {
@@ -592,38 +591,100 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
   color: var(--text-secondary); cursor: pointer; flex-shrink: 0;
 }
 .top-menu-btn svg { width: 19px; height: 19px; }
-.dropdown-menu {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; min-width: 180px;
-  background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-lg);
-  box-shadow: var(--shadow); padding: var(--space-1-5);
-  /* Grows from the menu button that opened it, not from its own center —
-     the spatial link between trigger and menu should be obvious. */
-  transform-origin: top left;
-  transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out), scale 140ms var(--ease-out);
+/* Side drawer (SideDrawer.js) — the ☰ menu. Slides in from the left over a
+   dimmed page; the Settings page swaps in inside it. Rows reuse
+   .group-list/.group-row with a tinted icon per row (--c). */
+.drawer-root { position: fixed; inset: 0; z-index: 45; }
+.drawer-scrim { position: absolute; inset: 0; background: rgba(11, 11, 11, 0.45); opacity: 0; transition: opacity 240ms var(--ease-out); }
+.drawer {
+  position: absolute; top: 0; bottom: 0; left: 0; width: min(340px, 88vw); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface); border-radius: 0 var(--radius-2xl) var(--radius-2xl) 0; box-shadow: 8px 0 40px rgba(0, 0, 0, 0.25);
+  padding: calc(env(safe-area-inset-top) + var(--space-4)) var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-6));
+  transform: translateX(-104%); transition: transform 240ms var(--ease-out); outline: none;
 }
-@starting-style {
-  .dropdown-menu { opacity: 0; scale: 0.94; }
-}
+.drawer-root.is-open .drawer-scrim { opacity: 1; }
+.drawer-root.is-open .drawer { transform: none; }
 @media (prefers-reduced-motion: reduce) {
-  .dropdown-menu { transition: opacity 140ms var(--ease-out); }
-  @starting-style {
-    .dropdown-menu { scale: 1; }
-  }
+  .drawer, .drawer-scrim { transition: opacity 160ms var(--ease-out); }
+  .drawer { transform: none; opacity: 0; }
+  .drawer-root.is-open .drawer { opacity: 1; }
 }
-.dropdown-item {
-  width: 100%; display: flex; align-items: center; gap: var(--space-2-5); background: transparent; border: none;
-  text-align: left; padding: var(--space-2) var(--space-2-5); border-radius: var(--radius-md); font-weight: 600; font-size: var(--text-md);
-  color: var(--text-primary); cursor: pointer;
+.drawer-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2-5); margin-bottom: var(--space-3-5); }
+.drawer-profile { display: flex; align-items: center; gap: var(--space-3); }
+.drawer-profile > span:last-child { display: flex; flex-direction: column; }
+.drawer-avatar {
+  width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: grid; place-items: center; font-weight: 800; font-size: var(--text-xl);
 }
-@media (hover: hover) and (pointer: fine) {
-  .dropdown-item:hover { background: var(--page); }
+.drawer-name { font-weight: 700; font-size: var(--text-lg); }
+.drawer-sub { font-size: var(--text-xs); color: var(--text-muted); }
+.drawer-title { font-weight: 700; font-size: var(--text-xl); flex: 1; }
+.drawer-close {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--surface-raised); border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; padding: 0;
 }
-.dropdown-item svg { width: 17px; height: 17px; color: var(--text-secondary); }
+.drawer-top .drawer-close:first-child { order: -1; }
+.drawer-label { font-size: var(--text-2xs); font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: var(--space-4) var(--space-1) var(--space-1-5); }
+.drawer-row { width: 100%; text-align: left; font: inherit; color: inherit; }
+button.drawer-row { cursor: pointer; }
+.drawer-ico {
+  width: 34px; height: 34px; border-radius: var(--radius-md); display: grid; place-items: center; flex-shrink: 0;
+  color: var(--c); background: color-mix(in srgb, var(--c) 15%, var(--surface-raised));
+}
+.drawer-row.is-danger .group-row-title { color: var(--status-critical); }
+.drawer-row .group-row-value { white-space: normal; }
+.group-row-value.is-good { color: var(--status-good); }
+.drawer-ring { width: 32px; height: 32px; flex-shrink: 0; }
+.drawer-pill {
+  font-size: var(--text-sm); font-weight: 700; color: var(--accent); background: var(--accent-soft); border: none;
+  border-radius: var(--radius-full); padding: var(--space-1-5) var(--space-3); cursor: pointer; text-decoration: none; flex-shrink: 0;
+}
+.drawer-pill:disabled { opacity: 0.6; }
+.drawer-mode { display: flex; width: 100%; }
+.drawer-mode .seg-btn { flex: 1; }
+.drawer-settings-row { margin-top: var(--space-4); }
+.drawer-value { font-size: var(--text-sm); font-weight: 600; color: var(--text-muted); flex-shrink: 0; }
+.drawer-select {
+  width: auto; flex-shrink: 0; font-size: var(--text-sm); font-weight: 600; color: var(--text-primary);
+  padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--page);
+}
+.drawer-confirm { display: flex; gap: var(--space-1-5); flex-shrink: 0; }
+.drawer-msg { margin: var(--space-1-5) var(--space-1) 0; }
+.drawer-inline-form { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); padding: var(--space-2-5) var(--space-3) var(--space-3); box-shadow: inset 0 1px 0 var(--gridline); align-items: end; }
+.drawer-inline-form .primary { grid-column: 1 / -1; }
+.race-card {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); text-align: left;
+  border: none; border-radius: var(--radius-lg); padding: var(--space-3) var(--space-3-5); color: #fff; font: inherit;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #0b1020));
+}
+.race-card > span { display: flex; flex-direction: column; gap: var(--space-0-5); min-width: 0; }
+.race-card.is-empty { cursor: pointer; }
+.race-card-label { font-size: var(--text-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.88; }
+.race-card-big { font-size: var(--text-3xl); font-weight: 800; line-height: 1.1; }
+.race-card.is-empty .race-card-big { font-size: var(--text-lg); }
+.race-card-bar { display: block; width: 150px; height: 5px; border-radius: var(--radius-full); background: rgba(255, 255, 255, 0.3); overflow: hidden; margin-top: var(--space-1-5); }
+.race-card-bar i { display: block; height: 100%; background: #fff; border-radius: var(--radius-full); }
+.switch {
+  width: 42px; height: 24px; border-radius: var(--radius-full); background: var(--gridline); border: none; padding: 0;
+  position: relative; flex-shrink: 0; cursor: pointer; transition: background 160ms var(--ease-out);
+}
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 160ms var(--ease-out);
+}
+.switch.on { background: var(--accent); }
+.switch.on::after { transform: translateX(18px); }
+@media (prefers-reduced-motion: reduce) {
+  .switch, .switch::after { transition: none; }
+}
+a.export-row { text-decoration: none; color: inherit; }
+.partner-day .card { border: none; box-shadow: none; padding: 0; background: transparent; }
+.my-food-editor { margin: var(--space-2); }
 
 /* Modals — materialize in (fade + a slight scale-up, never from scale(0)),
    and exit the same way in reverse. Modals aren't anchored to the control
    that opened them (there usually isn't one specific trigger), so unlike the
-   dropdown/recipe-dropdown above they stay centered rather than growing from
+   recipe dropdown they stay centered rather than growing from
    a transform-origin. Modal.js adds/removes .is-closing to play the exit
    before it actually unmounts, since @starting-style only covers entry. */
 .modal-overlay {

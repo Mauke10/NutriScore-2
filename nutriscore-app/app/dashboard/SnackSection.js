@@ -55,7 +55,8 @@ export default function SnackSection({
   calorieTarget,
   proteinTarget,
   dayOffset: dayOffsetProp,
-  onDayOffsetChange
+  onDayOffsetChange,
+  showFiber = true // drawer → Settings → Show fiber
 }) {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -475,10 +476,12 @@ export default function SnackSection({
               <span className="m-label"><span className="m-dot" style={{ background: "var(--macro-fat)" }} />Fat</span>
               <span className="m-value">{Math.round(fatTotal)} g</span>
             </div>
-            <div className="macro-chip">
-              <span className="m-label"><span className="m-dot" style={{ background: "var(--macro-fiber)" }} />Fiber</span>
-              <span className="m-value">{Math.round(fiberTotal)} g</span>
-            </div>
+            {showFiber && (
+              <div className="macro-chip">
+                <span className="m-label"><span className="m-dot" style={{ background: "var(--macro-fiber)" }} />Fiber</span>
+                <span className="m-value">{Math.round(fiberTotal)} g</span>
+              </div>
+            )}
           </div>
         </div>
         <div className="split-line">
@@ -612,16 +615,18 @@ export default function SnackSection({
               readOnly={form.ingredients.length > 0}
             />
           </div>
-          <div className="field">
-            <label htmlFor={"fiber-" + personId}>Fiber (g)</label>
-            <input
-              id={"fiber-" + personId}
-              type="number"
-              value={form.fiberG}
-              onChange={(e) => setField("fiberG", e.target.value)}
-              readOnly={form.ingredients.length > 0}
-            />
-          </div>
+          {showFiber && (
+            <div className="field">
+              <label htmlFor={"fiber-" + personId}>Fiber (g)</label>
+              <input
+                id={"fiber-" + personId}
+                type="number"
+                value={form.fiberG}
+                onChange={(e) => setField("fiberG", e.target.value)}
+                readOnly={form.ingredients.length > 0}
+              />
+            </div>
+          )}
           <div className="field">
             <label htmlFor={"date-" + personId}>Date</label>
             <input id={"date-" + personId} type="date" value={form.logDate} onChange={(e) => setField("logDate", e.target.value)} />
@@ -679,8 +684,8 @@ export default function SnackSection({
                   {s.carbs_g != null ? "C " + Math.round(s.carbs_g) + "g" : "C —"}
                   {"  ·  "}
                   {s.fat_g != null ? "F " + Math.round(s.fat_g) + "g" : "F —"}
-                  {"  ·  "}
-                  {s.fiber_g != null ? "Fi " + Math.round(s.fiber_g) + "g" : "Fi —"}
+                  {showFiber && "  ·  "}
+                  {showFiber && (s.fiber_g != null ? "Fi " + Math.round(s.fiber_g) + "g" : "Fi —")}
                 </span>
                 <span className="log-card-date" title={s.log_date}>{shortDateLabel(s.log_date)}</span>
               </div>
@@ -771,10 +776,12 @@ export default function SnackSection({
               <label htmlFor="edit-fat">Fat (g)</label>
               <input id="edit-fat" type="number" value={editForm.fatG} onChange={(e) => setEditField("fatG", e.target.value)} />
             </div>
-            <div className="field">
-              <label htmlFor="edit-fiber">Fiber (g)</label>
-              <input id="edit-fiber" type="number" value={editForm.fiberG} onChange={(e) => setEditField("fiberG", e.target.value)} />
-            </div>
+            {showFiber && (
+              <div className="field">
+                <label htmlFor="edit-fiber">Fiber (g)</label>
+                <input id="edit-fiber" type="number" value={editForm.fiberG} onChange={(e) => setEditField("fiberG", e.target.value)} />
+              </div>
+            )}
             <div className="field">
               <label htmlFor="edit-date">Date</label>
               <input id="edit-date" type="date" value={editForm.logDate} onChange={(e) => setEditField("logDate", e.target.value)} />
