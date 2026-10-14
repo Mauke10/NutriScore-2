@@ -390,7 +390,6 @@ button.danger:active,
 .profile-btn:active,
 .bottom-nav-btn:active,
 .top-menu-btn:active,
-.fab-camera:active,
 .plan-cal-nav-btn:active,
 .plan-cal-today-btn:active,
 .plan-cal-cell:active,
@@ -421,8 +420,7 @@ button.danger:active,
   .profile-btn:active,
   .bottom-nav-btn:active,
   .top-menu-btn:active,
-  .fab-camera:active,
-  .plan-cal-nav-btn:active,
+    .plan-cal-nav-btn:active,
   .plan-cal-today-btn:active,
   .plan-cal-cell:active,
   .colour-swatch:active,
@@ -458,13 +456,6 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 .h2h-season { font-size: var(--text-md); color: var(--text-secondary); margin-bottom: var(--space-3); }
 
 
-.photo-drop {
-  display: flex; align-items: center; justify-content: center;
-  border: 1.5px dashed var(--border); border-radius: var(--radius-lg); background: var(--page);
-  min-height: 92px; cursor: pointer; overflow: hidden;
-}
-.photo-drop img { max-height: 150px; max-width: 100%; object-fit: contain; padding: var(--space-1-5); }
-.photo-drop span { color: var(--text-muted); font-size: var(--text-md); padding: var(--space-4-5); text-align: center; }
 
 .login-shell {
   min-height: 100dvh; /* not 100vh — that's the collapsed-chrome max, and overflows by the URL bar's height on load */
@@ -796,19 +787,6 @@ td.notes { white-space: normal; max-width: 220px; color: var(--text-secondary); 
 }
 .log-cards-empty { text-align: center; color: var(--text-muted); font-size: var(--text-md); padding: var(--space-5) 0; }
 
-/* Floating camera button (mobile) */
-.fab-camera {
-  display: none;
-  position: fixed; z-index: 32; right: 16px; bottom: calc(70px + env(safe-area-inset-bottom));
-  width: 54px; height: 54px; border-radius: 50%;
-  background: var(--accent); color: #fff;
-  align-items: center; justify-content: center;
-  box-shadow: 0 4px 16px rgba(11, 11, 11, 0.28), 0 2px 6px rgba(11, 11, 11, 0.16);
-  border: none; cursor: pointer;
-}
-.fab-camera svg { width: 23px; height: 23px; }
-@media (max-width: 880px) { .fab-camera { display: flex; } }
-.fab-camera[hidden] { display: none; }
 
 /* Colour panel — accent swatches */
 .colour-swatch-grid { display: flex; flex-wrap: wrap; gap: var(--space-2); }

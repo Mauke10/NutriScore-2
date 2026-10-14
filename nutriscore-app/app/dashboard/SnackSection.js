@@ -54,18 +54,12 @@ export default function SnackSection({
   refreshSnacks,
   calorieTarget,
   proteinTarget,
-  registerCameraTrigger,
   dayOffset: dayOffsetProp,
   onDayOffsetChange
 }) {
   const [form, setForm] = useState(emptyForm);
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [estimating, setEstimating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [assumption, setAssumption] = useState("");
-  const fileInputRef = useRef(null);
   const justAddedRef = useRef(null); // key of the ingredient just added, so its grams field gets focus
 
   // Editing an already-logged entry (fixing a typo'd number, or "that was a
@@ -162,22 +156,8 @@ export default function SnackSection({
     else goToDay(dayOffset - 1, 1);
   }
 
-  useEffect(() => {
-    if (!isMe || !registerCameraTrigger) return;
-    registerCameraTrigger(() => fileInputRef.current?.click());
-    return () => registerCameraTrigger(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMe]);
-
   function setField(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
-  }
-
-  function pickPhoto(file) {
-    if (!file) return;
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
-    setError("");
   }
 
   function pickRecipe(recipe) {
@@ -243,37 +223,6 @@ export default function SnackSection({
     setForm((f) => withRecomputedTotals({ ...f, ingredients: f.ingredients.filter((_, i) => i !== idx) }));
   }
 
-  async function estimateFromPhoto() {
-    if (!photoFile) return;
-    setEstimating(true);
-    setError("");
-    setAssumption("");
-    try {
-      const fd = new FormData();
-      fd.append("photo", photoFile);
-      const res = await fetch("/api/snacks/estimate", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Estimate failed");
-      setForm((f) => ({
-        ...f,
-        description: data.description || f.description,
-        calories: data.calories != null ? String(Math.round(data.calories)) : f.calories,
-        proteinG: data.proteinG != null ? String(Math.round(data.proteinG)) : f.proteinG,
-        carbsG: data.carbsG != null ? String(Math.round(data.carbsG)) : f.carbsG,
-        fatG: data.fatG != null ? String(Math.round(data.fatG)) : f.fatG,
-        fiberG: data.fiberG != null ? String(Math.round(data.fiberG)) : f.fiberG,
-        recipeId: "",
-        ingredients: [],
-        buildMode: false
-      }));
-      if (data.assumptions) setAssumption(data.assumptions + (data.confidence ? " (" + data.confidence + " confidence)" : ""));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setEstimating(false);
-    }
-  }
-
   async function submit(e) {
     e.preventDefault();
     // Built from ingredients without typing a name — call it what's in it.
@@ -298,15 +247,10 @@ export default function SnackSection({
       if (form.recipeId) fd.append("recipeId", form.recipeId);
       if (form.saveAsRecipe) fd.append("saveAsRecipe", "1");
       if (form.ingredients.length) fd.append("ingredients", JSON.stringify(form.ingredients));
-      if (photoFile) fd.append("photo", photoFile);
       const res = await fetch("/api/snacks", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Save failed");
       setForm({ ...emptyForm, logDate: form.logDate, mealType: form.mealType });
-      setPhotoFile(null);
-      setPhotoPreview(null);
-      setAssumption("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
       await refreshSnacks();
     } catch (err) {
       setError(err.message);
@@ -581,28 +525,6 @@ export default function SnackSection({
                 Snack
               </button>
             </div>
-          </div>
-
-          <div className="field wide">
-            <label>Photo (optional)</label>
-            <label className="photo-drop" htmlFor={"photo-" + personId}>
-              {photoPreview ? <img src={photoPreview} alt="Snack preview" /> : <span>Tap to add a photo — Claude will estimate calories & macros</span>}
-            </label>
-            <input
-              id={"photo-" + personId}
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              style={{ display: "none" }}
-              onChange={(e) => pickPhoto(e.target.files?.[0])}
-            />
-            {photoFile && (
-              <button type="button" className="ghost" onClick={estimateFromPhoto} disabled={estimating} style={{ marginTop: "var(--space-1-5)" }}>
-                {estimating ? "Estimating…" : "Estimate from photo"}
-              </button>
-            )}
-            {assumption && <div className="status-text small muted spaced-xs">{assumption}</div>}
           </div>
 
           <div className="field wide">

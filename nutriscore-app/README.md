@@ -89,14 +89,11 @@ Three free accounts, about 20 minutes total:
 2. **Strava API app** — so the dashboard can pull your training data automatically.
 3. **Vercel** — hosts the app itself, for free, at a URL you can both open.
 
-Plus one already-have-it: your Anthropic API key, for the snack-photo calorie estimation.
-
 ## 1. Supabase (database)
 
 1. Go to [supabase.com](https://supabase.com), sign up, and create a new project (any name, any region close to Estonia works well — e.g. Frankfurt).
 2. Once it's provisioned, open **SQL Editor → New query**, paste the entire contents of `supabase/schema.sql` from this project, and click **Run**. This creates every table the app needs (`people`, `weekly_logs`, `bloodwork`, `recipes`, `recipe_ingredients`, `food_logs`, `settings`, `daily_notes`, `training_plan`, `training_volume`, `strava_accounts`) and seeds the two people rows — you do **not** need to also run the individual `migration_00N_*.sql` files, those are only for updating a database that was set up before that feature existed.
-3. Go to **Storage** in the left sidebar → **New bucket** → name it exactly `snack-photos` → toggle **Public bucket** on → **Create bucket**. This is where snack photos are stored.
-4. Go to **Settings → API**. You'll need three values from this page in step 5 below:
+3. Go to **Settings → API**. You'll need three values from this page in step 5 below:
    - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
    - **anon public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY` (not actually used by the app directly, but keep it handy)
    - **service_role** key (click "Reveal") → `SUPABASE_SERVICE_ROLE_KEY` — keep this one secret, it has full database access
@@ -121,7 +118,6 @@ Plus one already-have-it: your Anthropic API key, for the snack-photo calorie es
    | `SUPABASE_SERVICE_ROLE_KEY` | from Supabase step 4 |
    | `APP_PIN` | pick any PIN you'll both use to log in, e.g. `2468` |
    | `SESSION_SECRET` | a long random string — generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-   | `ANTHROPIC_API_KEY` | your Anthropic API key from console.anthropic.com |
    | `STRAVA_CLIENT_ID` | from Strava step 2 |
    | `STRAVA_CLIENT_SECRET` | from Strava step 2 |
    | `STRAVA_REDIRECT_URI` | `https://<your-vercel-domain>/api/strava/callback` — you'll only know the exact domain after the first deploy, so deploy once, then come back and set this, then redeploy |
@@ -137,24 +133,10 @@ Plus one already-have-it: your Anthropic API key, for the snack-photo calorie es
 3. In your own column, click **Connect Strava** and authorize. Do the same on Laura's device for her profile.
 4. Click **Sync now** any time to pull the latest month's activities from Strava into the training volume tiles.
 
-## On the photo calorie estimation — open-source vs. the API
-
-You asked whether you could run an open-source vision model yourself instead of paying per-call for the Anthropic API. Short version: you can, but it's a real tradeoff, not a free upgrade.
-
-**What's wired up now** (`app/api/snacks/estimate/route.js`) calls the Claude API with your `ANTHROPIC_API_KEY`. It costs a fraction of a cent per photo, needs zero infrastructure, and gives you Claude's actual vision quality — reasonably good at estimating portion size and identifying mixed plates.
-
-**Self-hosting an open model** (e.g. LLaVA, Qwen2-VL, Moondream) means:
-
-- Renting a GPU server (a model good enough to be useful needs at least ~8–16GB of VRAM) — realistically €50–150+/month for something always-on, or you pay per-request on a serverless GPU provider (Replicate, Runpod), which is often *not* cheaper than the Anthropic API at your volume (a couple of snack photos a day).
-- Running your own inference server (Ollama with a vision model, or a small FastAPI wrapper around the model), which you'd then call from this same route instead of the Anthropic SDK — the rest of the app doesn't change, since it just expects JSON back.
-- Meaningfully worse accuracy than Claude on food/portion estimation, in practice, unless you fine-tune — which is its own project.
-
-Given you're already planning a passion-project paper on this next year, I'd suggest starting with the Anthropic API as-is (it'll cost you a few euros total over the season) and treating "swap in a self-hosted model and compare accuracy" as an interesting *experiment* for that paper, rather than the production path from day one. If you do want to go that route later, the swap is contained entirely to `app/api/snacks/estimate/route.js` — nothing else in the app needs to change.
-
 ## Project structure
 
 - `app/dashboard/` — the main dashboard UI (React client components)
-- `app/api/` — all the server routes: login/session, weekly/bloodwork/targets/training CRUD, snack logging + photo estimation, Strava OAuth + sync
+- `app/api/` — all the server routes: login/session, weekly/bloodwork/targets/training CRUD, snack logging, Strava OAuth + sync
 - `lib/` — shared server logic: Supabase client, session/PIN auth, Strava API wrapper
 - `supabase/schema.sql` — run this once in Supabase's SQL editor
 
