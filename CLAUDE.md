@@ -46,7 +46,7 @@ Session: a signed cookie (`nutriscore_session`), HMAC-SHA256 over `personId.issu
 
 **Explicit product decision — do not add without being asked again:** no PIN brute-force/lockout protection. The user considered this and declined it ("The pin thing is no problem right now as it is only to ppl"). Don't add rate-limiting or lockout to the login route as a "security improvement" unasked.
 
-**Migration 011 (menu settings): written, NOT yet applied to live** — `supabase/migration_011_menu_settings.sql` adds `race_name`, `race_date`, `day_end_hour`, `share_meals`, `show_fiber`, `strava_autosync` to `settings`. Until it's applied, `/api/prefs` fails and the drawer's Settings fall back to defaults (nothing breaks, saves just fail). Update this line once it's run.
+**Migration 011 applied:** `supabase/migration_011_menu_settings.sql` (adds `race_name`, `race_date`, `day_end_hour`, `share_meals`, `show_fiber`, `strava_autosync` to `settings`) was applied to the live project on 2026-10-14, before the side drawer shipped. `race_date` starts out null until set in Settings.
 
 **Migration 010 applied:** `supabase/migration_010_body_measurements.sql` (the `body_measurements` table + `settings.measurement_parts`) was applied to the live project on 2026-10-14, before the Measurements card shipped.
 
