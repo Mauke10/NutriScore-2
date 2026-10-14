@@ -162,7 +162,14 @@ create table if not exists settings (
   bike_goal_km numeric,
   run_goal_km numeric,
   accent_color text,
-  measurement_parts text[] not null default '{}' -- body parts tracked on the Measurements card, in order
+  measurement_parts text[] not null default '{}', -- body parts tracked on the Measurements card, in order
+  -- Drawer → Settings (migration 011)
+  race_name text not null default 'Ironman 70.3 Tallinn',
+  race_date date,
+  day_end_hour smallint not null default 0 check (day_end_hour between 0 and 4), -- food before this hour counts for the day before
+  share_meals boolean not null default true, -- false: the other person sees totals only
+  show_fiber boolean not null default true,
+  strava_autosync boolean not null default true
 );
 
 -- Body measurements (Body tab). One row per person per day per part; `part`

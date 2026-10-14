@@ -11,16 +11,21 @@ import TrainingSection from "./TrainingSection";
 import WeeklySection from "./WeeklySection";
 import BloodworkSection from "./BloodworkSection";
 import MeasurementsSection from "./MeasurementsSection";
-import TopMenu from "./TopMenu";
+import SideDrawer from "./SideDrawer";
 import GoalsPanel from "./GoalsPanel";
-import SettingsPanel from "./SettingsPanel";
 import RecipesPanel from "./RecipesPanel";
+import MyFoodsPanel from "./MyFoodsPanel";
+import PartnerDayPanel from "./PartnerDayPanel";
+import ChangePinPanel from "./ChangePinPanel";
+import ExportPanel from "./ExportPanel";
 import ColourPanel from "./ColourPanel";
 import Whiteboard from "./Whiteboard";
 import TodayPlanStrip from "./TodayPlanStrip";
 import TrainingPlanCalendar from "./TrainingPlanCalendar";
 import CompareColumns from "./CompareColumns";
 import { DEFAULT_COLOR, dayViewLabel } from "./utils";
+import { usePrefs } from "./usePrefs";
+import { lastStravaSync, syncStrava } from "./strava";
 import { DEFAULT_THEME, THEME_KEY, normalizeTheme, resolveTheme } from "../../lib/theme";
 
 // Mobile shows the current tab's name as the page title (desktop shows
@@ -33,7 +38,7 @@ export default function DashboardClient({ me }) {
   const laura = usePersonData("laura");
   const [activeTab, setActiveTab] = useState("today");
   const [dayOffset, setDayOffset] = useState(0); // food tab: 0 = today, 1 = yesterday … 6 (swiped on the calorie ring)
-  const [openPanel, setOpenPanel] = useState(null); // null | 'goals' | 'settings' | 'recipes' | 'colour'
+  const [openPanel, setOpenPanel] = useState(null); // null | goals | recipes | colour | myFoods | partner | pin | export (opened from the drawer)
   // Colour scheme for this device: { mode: 'day' | 'night' | null (follow
   // the device), day, night } — see lib/theme.js. Read straight from storage
   // on first render (the pre-paint script in layout.js already applied it),
@@ -79,6 +84,20 @@ export default function DashboardClient({ me }) {
   }
 
   const myData = me === "martin" ? martin : laura;
+  const partnerId = me === "martin" ? "laura" : "martin";
+  const partnerData = me === "martin" ? laura : martin;
+  const { prefs, loaded: prefsLoaded, update: updatePrefs } = usePrefs();
+
+  // "Sync Strava on open": once per app open, at most hourly, quietly.
+  useEffect(() => {
+    if (!prefsLoaded || !prefs.stravaAutosync || !myData.stravaStatus?.connected) return;
+    const last = lastStravaSync();
+    if (last && Date.now() - last < 60 * 60 * 1000) return;
+    syncStrava(me)
+      .then(() => myData.refreshTraining())
+      .catch(() => {}); // a failed background sync shouldn't nag; the drawer's Sync button shows errors
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefsLoaded, prefs.stravaAutosync, myData.stravaStatus?.connected]);
 
   async function logout() {
     await fetch("/api/logout", { method: "POST" });
@@ -94,11 +113,15 @@ export default function DashboardClient({ me }) {
     <div className="wrap" data-person={me} style={{ "--series-martin": martinColor, "--series-laura": lauraColor }}>
       <div className="top-bar">
         <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-2-5)" }}>
-          <TopMenu
-            onOpenGoals={() => setOpenPanel("goals")}
-            onOpenSettings={() => setOpenPanel("settings")}
-            onOpenRecipes={() => setOpenPanel("recipes")}
-            onOpenColour={() => setOpenPanel("colour")}
+          <SideDrawer
+            me={me}
+            myData={myData}
+            partnerData={partnerData}
+            prefs={prefs}
+            onPrefsChange={updatePrefs}
+            theme={theme}
+            onThemeChange={handleThemeChange}
+            onOpen={setOpenPanel}
             onLogout={logout}
           />
           <div>
@@ -129,15 +152,10 @@ export default function DashboardClient({ me }) {
           onClose={() => setOpenPanel(null)}
         />
       )}
-      {openPanel === "settings" && (
-        <SettingsPanel
-          personId={me}
-          stravaStatus={myData.stravaStatus}
-          refreshStravaStatus={myData.refreshStravaStatus}
-          refreshTraining={myData.refreshTraining}
-          onClose={() => setOpenPanel(null)}
-        />
-      )}
+      {openPanel === "myFoods" && <MyFoodsPanel onClose={() => setOpenPanel(null)} />}
+      {openPanel === "partner" && <PartnerDayPanel partnerId={partnerId} data={partnerData} onClose={() => setOpenPanel(null)} />}
+      {openPanel === "pin" && <ChangePinPanel personId={me} onClose={() => setOpenPanel(null)} />}
+      {openPanel === "export" && <ExportPanel onClose={() => setOpenPanel(null)} />}
       {openPanel === "recipes" && <RecipesPanel onClose={() => setOpenPanel(null)} />}
       {openPanel === "colour" && (
         <ColourPanel
@@ -157,8 +175,8 @@ export default function DashboardClient({ me }) {
             <Competition martinWeekly={martin.weekly} lauraWeekly={laura.weekly} />
           </div>
         )}
-        <PersonColumn personId="martin" displayName="Martin" seriesVar="--series-martin" isMe={me === "martin"} data={martin} />
-        <PersonColumn personId="laura" displayName="Laura" seriesVar="--series-laura" isMe={me === "laura"} data={laura} />
+        <PersonColumn personId="martin" displayName="Martin" seriesVar="--series-martin" isMe={me === "martin"} data={martin} showFiber={me !== "martin" || prefs.showFiber} />
+        <PersonColumn personId="laura" displayName="Laura" seriesVar="--series-laura" isMe={me === "laura"} data={laura} showFiber={me !== "laura" || prefs.showFiber} />
         <div style={{ gridColumn: "1 / -1" }}>
           <Whiteboard me={me} />
         </div>
@@ -180,6 +198,7 @@ export default function DashboardClient({ me }) {
             refreshTarget={myData.refreshTarget}
             dayOffset={dayOffset}
             onDayOffsetChange={setDayOffset}
+            showFiber={prefs.showFiber}
           />
         </div>
         <div hidden={activeTab !== "training"}>

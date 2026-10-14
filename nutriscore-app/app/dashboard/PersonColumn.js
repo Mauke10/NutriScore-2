@@ -6,7 +6,7 @@ import WeeklySection from "./WeeklySection";
 import TrainingSection from "./TrainingSection";
 import BloodworkSection from "./BloodworkSection";
 
-export default function PersonColumn({ personId, displayName, seriesVar, isMe, data }) {
+export default function PersonColumn({ personId, displayName, seriesVar, isMe, data, showFiber = true }) {
   const {
     weekly,
     bloodwork,
@@ -46,6 +46,7 @@ export default function PersonColumn({ personId, displayName, seriesVar, isMe, d
         calorieTarget={calorieTarget}
         proteinTarget={proteinTarget}
         refreshTarget={refreshTarget}
+        showFiber={showFiber}
       />
       <WeeklySection personId={personId} isMe={isMe} weekly={weekly} refreshWeekly={refreshWeekly} snacks={snacks} />
       <MeasurementsSection personId={personId} isMe={isMe} />
