@@ -1,4 +1,5 @@
 import "./globals.css";
+import { THEME_BG, NIGHT_THEME_KEYS, THEME_KEY } from "../lib/theme";
 import VersionWatcher from "./VersionWatcher";
 import ServiceWorkerRegister from "./ServiceWorkerRegister";
 import OfflineBanner from "./OfflineBanner";
@@ -33,37 +34,46 @@ export const metadata = {
   }
 };
 
-// Resolves the page background for a given theme choice the same way
-// globals.css does, so the status bar / task-switcher chrome always matches
-// what's actually on screen. `mode` is null for "match device".
+// Runs before first paint: reads the saved colour scheme, resolves it
+// ("follow the device" picks the bright or night scheme from
+// prefers-color-scheme), sets data-theme on <html> and paints a matching
+// <meta name="theme-color"> so the status bar / task switcher matches.
+// Plain ES5 in a string, so it can't import lib/theme.js — the colours and
+// keys are injected from it below, but normalize/resolve are mirrored by
+// hand: keep them in step with normalizeTheme()/resolveTheme() there.
 const THEME_COLOR_SNIPPET = `
 (function(){
-  function resolveBg(mode){
-    if (mode === "dark") return "#0d0d0d";
-    if (mode === "green") return "#143723";
-    if (mode === "light") return "#f9f9f7";
-    try {
-      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "#0d0d0d" : "#f9f9f7";
-    } catch (e) {
-      return "#f9f9f7";
-    }
+  var BG = ${JSON.stringify(THEME_BG)};
+  var NIGHT = ${JSON.stringify(NIGHT_THEME_KEYS)};
+  function isNightKey(k){ return NIGHT.indexOf(k) !== -1; }
+  function norm(t){
+    t = t && typeof t === "object" ? t : {};
+    var day = BG[t.day] && !isNightKey(t.day) ? t.day : "light";
+    var night = isNightKey(t.night) ? t.night : "dark";
+    var mode = t.mode === "day" || t.mode === "night" ? t.mode : null;
+    if (t.mode === "light") mode = "day";
+    if (t.mode === "dark" || t.mode === "green") mode = "night";
+    return { mode: mode, day: day, night: night };
   }
-  function applyThemeColor(mode){
+  function deviceIsDark(){
+    try { return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches); } catch (e) { return false; }
+  }
+  function applyThemeColor(key){
     var meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
       meta = document.createElement("meta");
       meta.setAttribute("name", "theme-color");
       document.head.appendChild(meta);
     }
-    meta.setAttribute("content", resolveBg(mode));
+    meta.setAttribute("content", BG[key] || BG.light);
   }
   window.__nutriscoreApplyThemeColor = applyThemeColor;
-  var savedMode = null;
-  try {
-    var t = JSON.parse(localStorage.getItem("nutriscore-theme") || "null");
-    if (t && t.mode) { savedMode = t.mode; document.documentElement.setAttribute("data-theme", t.mode); }
-  } catch (e) {}
-  applyThemeColor(savedMode);
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem(${JSON.stringify(THEME_KEY)}) || "null"); } catch (e) {}
+  var t = norm(saved);
+  var key = (t.mode === "night" || (t.mode === null && deviceIsDark())) ? t.night : t.day;
+  document.documentElement.setAttribute("data-theme", key);
+  applyThemeColor(key);
 })();
 `;
 
@@ -71,7 +81,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* Applies any saved bright/night/forest choice (and the matching status
+        {/* Applies the saved colour scheme (and the matching status
             bar / theme-color) before first paint, so the page never flashes the
             wrong theme on load. DashboardClient re-runs applyThemeColor whenever
             the person changes theme at runtime, or the device's own light/dark

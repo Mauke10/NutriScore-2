@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Sun, Moon } from "lucide-react";
 import Modal from "./Modal";
 import { DEFAULT_COLOR } from "./utils";
+import { DAY_THEMES, NIGHT_THEMES } from "../../lib/theme";
 
 
 const SWATCHES = [
@@ -19,9 +19,10 @@ const SWATCHES = [
   "#0891b2" // cyan
 ];
 
-const NIGHT_STYLES = [
-  { key: "dark", label: "Classic", swatch: "#141414" },
-  { key: "green", label: "Forest", swatch: "#235836" }
+const MODES = [
+  { key: "day", label: "Bright" },
+  { key: "night", label: "Night" },
+  { key: null, label: "Auto" }
 ];
 
 export default function ColourPanel({ personId, myColor, refreshAccentColor, theme, onThemeChange, onClose }) {
@@ -46,7 +47,6 @@ export default function ColourPanel({ personId, myColor, refreshAccentColor, the
     }
   }
 
-  const isNight = theme.mode !== "light";
 
   return (
     <Modal title="Colour" onClose={onClose}>
@@ -80,52 +80,59 @@ export default function ColourPanel({ personId, myColor, refreshAccentColor, the
 
       <div>
         <h4 className="panel-heading">Appearance</h4>
-        <p className="panel-desc">
-          Bright or night mode, just for this device.
-        </p>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={isNight}
-          aria-label="Toggle night mode"
-          className="theme-switch"
-          onClick={() => onThemeChange({ mode: isNight ? "light" : theme.night || "dark", night: theme.night || "dark" })}
-        >
-          <span className="theme-switch-thumb">{isNight ? <Moon size={13} strokeWidth={2.2} /> : <Sun size={13} strokeWidth={2.2} />}</span>
-        </button>
-        <span className="theme-switch-label">
-          {isNight ? "Night" : "Bright"}
-        </span>
+        <p className="panel-desc">Just for this device. Auto follows your phone: the bright scheme by day, the night one when the phone goes dark.</p>
+        <div className="segmented appearance-mode" role="radiogroup" aria-label="Bright, night or auto">
+          {MODES.map((m) => (
+            <button
+              key={String(m.key)}
+              type="button"
+              role="radio"
+              aria-checked={theme.mode === m.key}
+              className={theme.mode === m.key ? "seg-btn selected" : "seg-btn"}
+              onClick={() => onThemeChange({ ...theme, mode: m.key })}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
 
-        {isNight && (
-          <div style={{ marginTop: "var(--space-3-5)" }}>
-            <div className="overline">
-              Night style
-            </div>
-            <div style={{ display: "flex", gap: "var(--space-2)" }}>
-              {NIGHT_STYLES.map((s) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  className={theme.night === s.key ? "night-style-btn selected" : "night-style-btn"}
-                  onClick={() => onThemeChange({ mode: s.key === "green" ? "green" : "dark", night: s.key })}
-                >
-                  <span className="night-style-swatch" style={{ background: s.swatch }} />
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <button
-          type="button"
-          className="ghost sm spaced-top"
-          onClick={() => onThemeChange(null)}
-        >
-          Match my device instead
-        </button>
+        <SchemeRow
+          title="Bright"
+          schemes={DAY_THEMES}
+          selected={theme.day}
+          // Picking a bright scheme while on Night switches to Bright, so you see what you picked.
+          onPick={(key) => onThemeChange({ ...theme, day: key, mode: theme.mode === "night" ? "day" : theme.mode })}
+        />
+        <SchemeRow
+          title="Night"
+          schemes={NIGHT_THEMES}
+          selected={theme.night}
+          onPick={(key) => onThemeChange({ ...theme, night: key, mode: theme.mode === "day" ? "night" : theme.mode })}
+        />
       </div>
     </Modal>
+  );
+}
+
+function SchemeRow({ title, schemes, selected, onPick }) {
+  return (
+    <>
+      <div className="overline">{title}</div>
+      <div className="scheme-row" role="radiogroup" aria-label={title + " scheme"}>
+        {schemes.map((sc) => (
+          <button
+            key={sc.key}
+            type="button"
+            role="radio"
+            aria-checked={selected === sc.key}
+            className={selected === sc.key ? "scheme-btn selected" : "scheme-btn"}
+            onClick={() => onPick(sc.key)}
+          >
+            <span className="scheme-swatch" style={{ background: "linear-gradient(135deg, " + sc.swatch[0] + " 50%, " + sc.swatch[1] + " 50%)" }} />
+            {sc.label}
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
