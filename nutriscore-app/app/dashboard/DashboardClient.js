@@ -214,6 +214,7 @@ export default function DashboardClient({ me }) {
             runGoalKm={myData.runGoalKm}
             stravaStatus={myData.stravaStatus}
             refreshStravaStatus={myData.refreshStravaStatus}
+            raceDate={prefs.raceDate}
           />
         </div>
         <div hidden={activeTab !== "calendar"}>

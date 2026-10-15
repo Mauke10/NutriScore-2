@@ -12,8 +12,8 @@ function cleanActivity(v) {
 }
 
 // GET ?from=YYYY-MM-DD&to=YYYY-MM-DD → both people's plans in that range
-// (inclusive), oldest first, plus the hand-logged training sessions in the
-// same range so the app can tick plans off.
+// (inclusive), oldest first, plus the workouts done in the same range (hand-
+// logged and Strava) so the app can tick plans off.
 export async function GET(request) {
   const me = currentPerson();
   if (!me) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -26,7 +26,7 @@ export async function GET(request) {
   }
 
   const supabase = supabaseServer();
-  const [plans, sessions] = await Promise.all([
+  const [plans, sessions, strava] = await Promise.all([
     supabase
       .from("training_plan_items")
       .select("id, person_id, plan_date, activity, done")
@@ -38,10 +38,20 @@ export async function GET(request) {
       .from("training_sessions")
       .select("person_id, session_date, activity_type")
       .gte("session_date", from)
-      .lte("session_date", to)
+      .lte("session_date", to),
+    supabase
+      .from("strava_activities")
+      .select("person_id, activity_date, sport")
+      .gte("activity_date", from)
+      .lte("activity_date", to)
   ]);
   if (plans.error) return NextResponse.json({ error: plans.error.message }, { status: 500 });
-  return NextResponse.json({ entries: plans.data || [], sessions: sessions.data || [] });
+  // Strava activities count as logged sessions too, in the same shape.
+  const done = [
+    ...(sessions.data || []),
+    ...(strava.data || []).map((a) => ({ person_id: a.person_id, session_date: a.activity_date, activity_type: a.sport }))
+  ];
+  return NextResponse.json({ entries: plans.data || [], sessions: done });
 }
 
 // POST { planDate, activity, alsoPartner? } → adds a session to your own
