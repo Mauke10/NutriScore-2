@@ -46,7 +46,7 @@ Session: a signed cookie (`nutriscore_session`), HMAC-SHA256 over `personId.issu
 
 **Explicit product decision — do not add without being asked again:** no PIN brute-force/lockout protection. The user considered this and declined it ("The pin thing is no problem right now as it is only to ppl"). Don't add rate-limiting or lockout to the login route as a "security improvement" unasked.
 
-**Migration 013 (strava_activities + training_sessions.feel): written, NOT yet applied to live.** `supabase/migration_013_strava_activities.sql`. Until it's run, the Training tab shows an error and the Strava sync fails (it writes the new table). Update this line once it's run.
+**Migration 013 applied:** `supabase/migration_013_strava_activities.sql` (the `strava_activities` table + `training_sessions.feel`) was applied to the live project on 2026-10-15, before the new Training tab shipped. The first Strava sync after that backfills the last 4 months.
 
 **Migration 012 applied:** `supabase/migration_012_training_plan_items.sql` (the `training_plan_items` table) was applied to the live project on 2026-10-15, before the week-view calendar shipped; all 4 old `training_plan` rows were copied across. The old `training_plan` table is still there, unused.
 
