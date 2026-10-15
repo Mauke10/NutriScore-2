@@ -46,7 +46,7 @@ Session: a signed cookie (`nutriscore_session`), HMAC-SHA256 over `personId.issu
 
 **Explicit product decision — do not add without being asked again:** no PIN brute-force/lockout protection. The user considered this and declined it ("The pin thing is no problem right now as it is only to ppl"). Don't add rate-limiting or lockout to the login route as a "security improvement" unasked.
 
-**Migration 012 (training_plan_items): written, NOT yet applied to live.** `supabase/migration_012_training_plan_items.sql` creates `training_plan_items` and copies the old one-per-day `training_plan` rows into it. Until it's run, the Calendar tab and the header's today strip show nothing (the API reads the new table). Update this line once it's run.
+**Migration 012 applied:** `supabase/migration_012_training_plan_items.sql` (the `training_plan_items` table) was applied to the live project on 2026-10-15, before the week-view calendar shipped; all 4 old `training_plan` rows were copied across. The old `training_plan` table is still there, unused.
 
 **Migration 011 applied:** `supabase/migration_011_menu_settings.sql` (adds `race_name`, `race_date`, `day_end_hour`, `share_meals`, `show_fiber`, `strava_autosync` to `settings`) was applied to the live project on 2026-10-14, before the side drawer shipped. `race_date` starts out null until set in Settings.
 
