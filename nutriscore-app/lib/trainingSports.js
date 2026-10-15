@@ -126,3 +126,10 @@ export function estimateMinutes(text) {
   if (fromKm > 0) return Math.round(fromKm);
   return { brick: 120, strength: 45, mobility: 30 }[sport] || 45;
 }
+
+// Minutes for one workout from /api/training-feed: its own time, or an
+// estimate from its distance when only that was logged.
+export function workoutMinutes(w) {
+  if (w.minutes != null) return Number(w.minutes) || 0;
+  return w.distanceKm ? estimateMinutes((SPORTS[w.sport]?.label || "") + " " + w.distanceKm + " km") : 0;
+}

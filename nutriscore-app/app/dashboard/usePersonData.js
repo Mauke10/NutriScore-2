@@ -35,7 +35,7 @@ export function usePersonData(personId) {
   }, [personId]);
 
   const refreshSnacks = useCallback(async () => {
-    const res = await fetch("/api/snacks?person=" + personId);
+    const res = await fetch("/api/snacks?person=" + personId + "&limit=1000"); // ~12 weeks of entries, for the Compete tab's season
     const data = await res.json();
     setSnacks(data.entries || []);
     setMealsHidden(!!data.mealsHidden);

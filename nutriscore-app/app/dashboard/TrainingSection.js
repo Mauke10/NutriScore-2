@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import Modal from "./Modal";
 import { localDateStr, mondayOf, shiftWeek } from "./utils";
 import { agoLabel, lastStravaSync, syncStrava } from "./strava";
-import { SPORTS, distancesOf, estimateMinutes, sessionTypesFor, sportColor, sportOf } from "../../lib/trainingSports";
+import { SPORTS, distancesOf, estimateMinutes, sessionTypesFor, sportColor, sportOf, workoutMinutes } from "../../lib/trainingSports";
 
 // The Training tab: one layout seen at three zooms. Week (day bars, done vs
 // planned per sport, the week's workouts), Month (goal rings, progress with an
@@ -70,10 +70,7 @@ function km(n) {
   const v = Number(n) || 0;
   return (v >= 100 ? Math.round(v) : Math.round(v * 10) / 10).toLocaleString("en-GB");
 }
-function minutesOf(w) {
-  if (w.minutes != null) return w.minutes;
-  return w.distanceKm ? estimateMinutes(SPORTS[w.sport]?.label + " " + w.distanceKm + " km") : 0;
-}
+const minutesOf = workoutMinutes;
 // "5:15 /km", "2:04 /100m", "26.1 km/h"
 function paceOf(w) {
   if (!w.distanceKm || !w.minutes) return w.speedKmh ? w.speedKmh + " km/h" : null;
