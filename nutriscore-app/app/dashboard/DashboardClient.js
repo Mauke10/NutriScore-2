@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePersonData } from "./usePersonData";
-import Competition from "./Competition";
 import PersonColumn from "./PersonColumn";
 import BottomNav from "./BottomNav";
 import SnackSection from "./SnackSection";
@@ -19,10 +18,9 @@ import PartnerDayPanel from "./PartnerDayPanel";
 import ChangePinPanel from "./ChangePinPanel";
 import ExportPanel from "./ExportPanel";
 import ColourPanel from "./ColourPanel";
-import Whiteboard from "./Whiteboard";
 import TodayPlanStrip from "./TodayPlanStrip";
 import TrainingPlanCalendar from "./TrainingPlanCalendar";
-import CompareColumns from "./CompareColumns";
+import CompeteView from "./CompeteView";
 import { DEFAULT_COLOR, dayViewLabel } from "./utils";
 import { usePrefs } from "./usePrefs";
 import { lastStravaSync, syncStrava } from "./strava";
@@ -105,7 +103,6 @@ export default function DashboardClient({ me }) {
     router.refresh();
   }
 
-  const loading = martin.loading || laura.loading;
   const martinColor = martin.accentColor || DEFAULT_COLOR.martin;
   const lauraColor = laura.accentColor || DEFAULT_COLOR.laura;
 
@@ -170,15 +167,10 @@ export default function DashboardClient({ me }) {
 
       {/* Desktop: both columns side by side, always visible above 880px */}
       <div className="dashboard desktop-dashboard">
-        {!loading && (
-          <div style={{ gridColumn: "1 / -1" }}>
-            <Competition martinWeekly={martin.weekly} lauraWeekly={laura.weekly} />
-          </div>
-        )}
         <PersonColumn personId="martin" displayName="Martin" seriesVar="--series-martin" isMe={me === "martin"} data={martin} showFiber={me !== "martin" || prefs.showFiber} />
         <PersonColumn personId="laura" displayName="Laura" seriesVar="--series-laura" isMe={me === "laura"} data={laura} showFiber={me !== "laura" || prefs.showFiber} />
         <div style={{ gridColumn: "1 / -1" }}>
-          <Whiteboard me={me} />
+          <CompeteView me={me} martin={martin} laura={laura} raceDate={prefs.raceDate} />
         </div>
         <div style={{ gridColumn: "1 / -1" }}>
           <TrainingPlanCalendar me={me} raceDate={prefs.raceDate} sessionsVersion={myData.sessions} />
@@ -226,11 +218,7 @@ export default function DashboardClient({ me }) {
           <BloodworkSection personId={me} isMe bloodwork={myData.bloodwork} refreshBloodwork={myData.refreshBloodwork} />
         </div>
         <div hidden={activeTab !== "compete"}>
-          {/* The head-to-head lives here on a phone rather than above every
-              tab, where it pushed each tab's own content below the fold. */}
-          {!loading && <Competition martinWeekly={martin.weekly} lauraWeekly={laura.weekly} />}
-          <Whiteboard me={me} />
-          {!loading && <CompareColumns martin={martin} laura={laura} />}
+          <CompeteView me={me} martin={martin} laura={laura} raceDate={prefs.raceDate} />
         </div>
 
       </div>
