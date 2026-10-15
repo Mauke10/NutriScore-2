@@ -181,7 +181,7 @@ export default function DashboardClient({ me }) {
           <Whiteboard me={me} />
         </div>
         <div style={{ gridColumn: "1 / -1" }}>
-          <TrainingPlanCalendar me={me} />
+          <TrainingPlanCalendar me={me} raceDate={prefs.raceDate} sessionsVersion={myData.sessions} />
         </div>
       </div>
 
@@ -217,7 +217,7 @@ export default function DashboardClient({ me }) {
           />
         </div>
         <div hidden={activeTab !== "calendar"}>
-          <TrainingPlanCalendar me={me} />
+          <TrainingPlanCalendar me={me} raceDate={prefs.raceDate} sessionsVersion={myData.sessions} />
         </div>
         <div hidden={activeTab !== "body"}>
           <WeeklySection personId={me} isMe weekly={myData.weekly} refreshWeekly={myData.refreshWeekly} snacks={myData.snacks} />
