@@ -197,9 +197,29 @@ create table if not exists training_sessions (
   distance_km numeric,
   duration_min numeric,
   notes text,
+  feel smallint check (feel between 1 and 4), -- "how did it feel", 1 tough … 4 great (migration 013)
   created_at timestamptz not null default now()
 );
 create index if not exists training_sessions_person_date_idx on training_sessions (person_id, session_date);
+
+-- One row per Strava activity (migration 013), upserted by the sync on
+-- Strava's own id. training_volume above still gets the monthly totals.
+create table if not exists strava_activities (
+  id bigint primary key,
+  person_id text not null references people(id),
+  activity_date date not null,           -- local start date (Strava's start_date_local)
+  start_time timestamptz,
+  name text,
+  sport text not null default 'other',   -- swim | bike | run | strength | mobility | other
+  sport_type text,                       -- Strava's own: Ride, VirtualRide, TrailRun, …
+  distance_km numeric,
+  moving_min numeric,
+  elevation_m numeric,
+  avg_speed_kmh numeric,
+  avg_hr numeric,
+  updated_at timestamptz not null default now()
+);
+create index if not exists strava_activities_person_date_idx on strava_activities (person_id, activity_date);
 
 -- Shared "morning notes" whiteboard on the Compete tab — one message per
 -- person per day, clears itself out the next morning.
@@ -277,6 +297,7 @@ alter table recipe_ingredients enable row level security;
 alter table daily_notes enable row level security;
 alter table training_plan enable row level security;
 alter table training_plan_items enable row level security;
+alter table strava_activities enable row level security;
 alter table training_sessions enable row level security;
 alter table foods enable row level security;
 alter table body_measurements enable row level security;

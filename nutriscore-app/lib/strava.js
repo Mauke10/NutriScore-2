@@ -106,7 +106,7 @@ export async function listActivities(accessToken, afterEpoch, beforeEpoch) {
     activities.push(...batch);
     if (batch.length < perPage) break;
     page += 1;
-    if (page > 20) break; // safety cap — 2000 activities in one month would be unusual
+    if (page > 20) break; // safety cap — 2000 activities in one sync window would be unusual
   }
   return activities;
 }
@@ -131,14 +131,35 @@ export function aggregateVolume(activities) {
   };
 }
 
-// Month boundaries as Unix seconds, in the server's local time zone semantics
-// (good enough here — a training month doesn't need to-the-second precision).
-export function monthEpochRange(monthStr) {
-  const [y, m] = monthStr.split("-").map(Number);
-  const start = new Date(y, m - 1, 1, 0, 0, 0);
-  const end = new Date(y, m, 1, 0, 0, 0); // first instant of next month
+// Our sport key for a Strava activity (same keys as lib/trainingSports.js and
+// training_sessions.activity_type).
+export function stravaSport(a) {
+  const kind = String(a.sport_type || a.type || "").toLowerCase();
+  if (kind.includes("swim")) return "swim";
+  if (kind.includes("ride") || kind.includes("bike") || kind.includes("cycl") || kind === "velomobile") return "bike";
+  if (kind.includes("run")) return "run";
+  if (kind === "weighttraining" || kind === "crossfit") return "strength";
+  if (kind === "yoga" || kind === "pilates") return "mobility";
+  return "other";
+}
+
+// One strava_activities row. start_date_local is the athlete's wall-clock time
+// written with a "Z", so its first 10 characters are the local calendar date.
+export function activityRow(personId, a) {
+  const km = (Number(a.distance) || 0) / 1000;
   return {
-    after: Math.floor(start.getTime() / 1000),
-    before: Math.floor(end.getTime() / 1000)
+    id: a.id,
+    person_id: personId,
+    activity_date: String(a.start_date_local || a.start_date || "").slice(0, 10),
+    start_time: a.start_date || null,
+    name: a.name || null,
+    sport: stravaSport(a),
+    sport_type: a.sport_type || a.type || null,
+    distance_km: km > 0 ? Math.round(km * 100) / 100 : null,
+    moving_min: a.moving_time ? Math.round((a.moving_time / 60) * 10) / 10 : null,
+    elevation_m: a.total_elevation_gain ?? null,
+    avg_speed_kmh: a.average_speed ? Math.round(a.average_speed * 3.6 * 10) / 10 : null,
+    avg_hr: a.average_heartrate ?? null,
+    updated_at: new Date().toISOString()
   };
 }

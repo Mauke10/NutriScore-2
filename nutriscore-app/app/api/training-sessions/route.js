@@ -2,18 +2,24 @@ import { NextResponse } from "next/server";
 import { supabaseServer } from "../../../lib/supabase";
 import { currentPerson } from "../../../lib/auth";
 
-const TYPES = ["swim", "bike", "run", "strength", "other"];
+const TYPES = ["swim", "bike", "run", "strength", "mobility", "other"];
+
+// "How did it feel": 1 tough … 4 great, or null.
+function feelOrNull(v) {
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 1 && n <= 4 ? n : null;
+}
 
 // Manually logged workouts (there's no Hevy/gym-tracker connector yet, so
 // this is the "I did it, just let me type it in" path). Deliberately a
 // separate table from training_volume (the Strava-synced one) — see
 // migration_007 — so re-syncing Strava can never clobber something you
-// logged by hand, and vice versa. The dashboard adds the two together
-// client-side when showing "actual vs goal" for the month.
+// logged by hand, and vice versa. The Training tab reads both through
+// /api/training-feed.
 //
 // GET /api/training-sessions?person=martin&month=2026-09 — month filters to
-// that calendar month (for the goal-progress math); omit it to get the
-// most recent entries across all months (for the "recent sessions" list).
+// that calendar month; omit it to get the most recent entries across all
+// months.
 export async function GET(request) {
   const me = currentPerson();
   if (!me) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
@@ -71,7 +77,8 @@ export async function POST(request) {
     activity_type: activityType,
     distance_km: numOrNull(body.distanceKm),
     duration_min: numOrNull(body.durationMin),
-    notes: (body.notes || "").toString()
+    notes: (body.notes || "").toString(),
+    feel: feelOrNull(body.feel)
   };
 
   const supabase = supabaseServer();
@@ -114,6 +121,7 @@ export async function PATCH(request) {
   if (body.distanceKm !== undefined) row.distance_km = numOrNull(body.distanceKm);
   if (body.durationMin !== undefined) row.duration_min = numOrNull(body.durationMin);
   if (body.notes !== undefined) row.notes = (body.notes || "").toString();
+  if (body.feel !== undefined) row.feel = feelOrNull(body.feel);
 
   if (Object.keys(row).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });

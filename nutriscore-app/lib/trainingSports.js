@@ -14,6 +14,12 @@ export const SPORTS = {
   other: { label: "Other", emoji: "⏱️" }
 };
 
+// Fill colour per sport (CSS custom properties, set per colour scheme in
+// globals.css). Brick and rest never show up as a done workout.
+export function sportColor(sport) {
+  return "var(--sport-" + (["swim", "bike", "run", "strength", "mobility"].includes(sport) ? sport : "other") + ")";
+}
+
 // Order of the chips in the planning sheet.
 export const SPORT_KEYS = ["swim", "bike", "run", "brick", "strength", "mobility", "rest"];
 
@@ -80,9 +86,9 @@ export function distancesOf(text) {
   for (const part of parts) {
     const sport = firstSport(part) || (parts.length === 1 && whole in out ? whole : null);
     if (!sport || !(sport in out)) continue;
-    const m = /(\d+(?:[.,]\d+)?)\s*(km|k|m|meters?|meetrit)?(?![\p{L}\d])/iu.exec(part
+    const m = /(?<![\p{L}\d.,])(\d+(?:[.,]\d+)?)\s*(km|k|m|meters?|meetrit)?(?![\p{L}\d])/iu.exec(part
       .replace(/\d+\s*[x×]\s*\d+(?:[.,]\d+)?\s*(km|k|m)?/gi, "") // intervals: "6x800"
-      .replace(/\d+(?:[.,]\d+)?\s*(min|minutit|h|hr|hrs|hours?|tundi|tund)\b/gi, ""));
+      .replace(/\d+(?:[.,]\d+)?\s*(?:minutit|min|hours?|hrs|hr|h|tundi|tund)(?!\p{L})(?:\s*\d{1,2}(?![\d.,]|\s*(?:km|k|m)\b))?/giu, "")); // "45 min", "1 h", "1h30"
     if (!m) continue;
     let n = Number(m[1].replace(",", "."));
     const unit = (m[2] || "").toLowerCase();
@@ -98,6 +104,25 @@ export function distancesOf(text) {
 // was logged.
 export function sessionTypesFor(sport) {
   if (sport === "brick") return ["bike", "run"];
-  if (sport === "swim" || sport === "bike" || sport === "run" || sport === "strength") return [sport];
+  if (sport === "swim" || sport === "bike" || sport === "run" || sport === "strength" || sport === "mobility") return [sport];
   return [];
+}
+
+// Rough minutes for a plan line, for the Training tab's dashed "still planned"
+// bars: an explicit time if the text has one ("45 min", "1.5 h", "1h30"),
+// otherwise distance at an easy pace (swim 20 min/km, bike 25 km/h, run
+// 6 min/km), otherwise a typical session length. Only ever drawn as an
+// estimate, never counted as training done.
+export function estimateMinutes(text) {
+  const t = (text || "").toLowerCase();
+  const hm = /(\d+(?:[.,]\d+)?)\s*(?:hours?|hrs|hr|h|tundi|tund)(?!\p{L})(?:\s*(\d{1,2})(?![\d.,]|\s*(?:km|k|m)\b))?/u.exec(t);
+  const min = /(\d+)\s*(?:min|minutit)\b/.exec(t);
+  if (hm) return Math.round(Number(hm[1].replace(",", ".")) * 60 + (Number(hm[2]) || 0));
+  if (min) return Number(min[1]);
+  const sport = sportOf(text);
+  if (sport === "rest") return 0;
+  const d = distancesOf(text);
+  const fromKm = d.swim * 20 + d.bike * 2.4 + d.run * 6;
+  if (fromKm > 0) return Math.round(fromKm);
+  return { brick: 120, strength: 45, mobility: 30 }[sport] || 45;
 }
