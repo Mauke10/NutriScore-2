@@ -417,6 +417,7 @@ export default function SnackSection({
         personId={personId}
         snacks={snacks}
         calorieTarget={calorieTarget}
+        proteinTarget={proteinTarget}
         selectedDate={viewDate}
         onSelectDate={(date) => {
           for (let n = 0; n < DAY_VIEW_DAYS; n++) if (dateDaysAgo(n) === date) goToDay(n);
