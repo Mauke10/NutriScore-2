@@ -745,11 +745,17 @@ a.export-row { text-decoration: none; color: inherit; }
 /* 7-day calorie trend strip (sits above the calorie ring) */
 .week-trend { margin-bottom: var(--space-3-5); }
 .week-trend-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-1-5); flex-wrap: wrap; }
-.week-trend-label { font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.week-trend-label { flex-basis: 100%; font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
 .week-trend-median { font-size: var(--text-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .week-trend-median strong { color: var(--text-primary); font-weight: 700; }
 .week-trend-delta { color: var(--status-good); font-weight: 600; }
 .week-trend-delta.over { color: var(--status-warning); }
+.week-trend-stats { flex-basis: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.week-trend-stats .week-trend-median { display: flex; flex-direction: column; gap: var(--space-0-5); }
+.week-trend-stats .week-trend-median strong { font-size: var(--text-lg); }
+.week-trend-stats .week-trend-delta { font-size: var(--text-xs); }
+.week-trend-protein { border-left: 1px solid var(--gridline); padding-left: var(--space-3); }
+.week-trend-dot { display: inline-block; width: 7px; height: 7px; border-radius: var(--radius-full); background: var(--macro-protein); margin-right: var(--space-1-5); vertical-align: 0.1em; }
 .week-trend-chart { display: block; width: 100%; height: 72px; overflow: visible; }
 .week-trend-goal-line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.55; }
 .week-trend-daylabel { font-size: 8px; font-weight: 600; fill: var(--text-muted); text-transform: uppercase; }

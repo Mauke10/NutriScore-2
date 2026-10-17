@@ -26,7 +26,7 @@ function median(nums) {
 //
 // The ringed bar is the day the calorie ring below is showing (today unless
 // you've swiped back); tapping a bar jumps the ring to that day.
-export default function WeekCalorieTrend({ personId, snacks, calorieTarget, selectedDate, onSelectDate }) {
+export default function WeekCalorieTrend({ personId, snacks, calorieTarget, proteinTarget, selectedDate, onSelectDate }) {
   const days = [];
   // dateDaysAgo, not toISOString — Tallinn is UTC+2/+3, so in the ~2-3 hours
   // after local midnight toISOString().slice(0,10) still reports yesterday's
@@ -39,6 +39,7 @@ export default function WeekCalorieTrend({ personId, snacks, calorieTarget, sele
     return {
       date,
       total: entries.reduce((sum, s) => sum + (Number(s.calories) || 0), 0),
+      protein: entries.reduce((sum, s) => sum + (Number(s.protein_g) || 0), 0),
       tracked: entries.length > 0 // a day with nothing logged isn't "0 kcal", it's no data —
       // excluded from the median below so a missed day doesn't drag it down.
     };
@@ -49,6 +50,10 @@ export default function WeekCalorieTrend({ personId, snacks, calorieTarget, sele
   const maxVal = Math.max(calorieTarget || 0, ...totalsByDay.map((d) => d.total), 1);
   const seriesVar = "var(--" + (personId === "laura" ? "series-laura" : "series-martin") + ")";
   const delta = calorieTarget != null && trackedTotals.length ? Math.round(med - calorieTarget) : null;
+  // Protein median over the same tracked days. Over the goal is the good
+  // direction here, so it reads "on goal" from the target up.
+  const proteinMed = median(totalsByDay.filter((d) => d.tracked).map((d) => d.protein));
+  const proteinDelta = proteinTarget != null && trackedTotals.length ? Math.round(proteinMed - proteinTarget) : null;
   const label = trackedTotals.length && trackedTotals.length < 7 ? "Last 7 days (" + trackedTotals.length + " logged)" : "Last 7 days";
 
   const chartW = days.length * BAR_W + (days.length - 1) * GAP + PAD * 2;
@@ -57,21 +62,34 @@ export default function WeekCalorieTrend({ personId, snacks, calorieTarget, sele
   return (
     <div className="week-trend">
       <div className="week-trend-head">
-        <span className="week-trend-label">{label}</span>
-        <span className="week-trend-median">
-          {trackedTotals.length === 0 ? (
-            "Nothing logged yet"
-          ) : (
-            <>
-              Median <strong>{Math.round(med).toLocaleString()}</strong> kcal
+        <span className="week-trend-label">{label}{trackedTotals.length > 0 && " · median"}</span>
+        {trackedTotals.length === 0 ? (
+          <span className="week-trend-median">Nothing logged yet</span>
+        ) : (
+          <div className="week-trend-stats">
+            <span className="week-trend-median">
+              <span>
+                <strong>{Math.round(med).toLocaleString("en-GB")}</strong> kcal
+              </span>
               {delta != null && (
                 <span className={"week-trend-delta" + (delta > 0 ? " over" : "")}>
-                  {delta > 0 ? " · " + delta.toLocaleString() + " over goal" : delta < 0 ? " · " + Math.abs(delta).toLocaleString() + " under goal" : " · right on goal"}
+                  {delta > 0 ? delta.toLocaleString("en-GB") + " over goal" : delta < 0 ? Math.abs(delta).toLocaleString("en-GB") + " under goal" : "right on goal"}
                 </span>
               )}
-            </>
-          )}
-        </span>
+            </span>
+            <span className="week-trend-median week-trend-protein">
+              <span>
+                <span className="week-trend-dot" aria-hidden="true" />
+                <strong>{Math.round(proteinMed)}</strong> g protein
+              </span>
+              {proteinDelta != null && (
+                <span className={"week-trend-delta" + (proteinDelta < 0 ? " over" : "")}>
+                  {proteinDelta < 0 ? Math.abs(proteinDelta) + " g short of goal" : "on goal"}
+                </span>
+              )}
+            </span>
+          </div>
+        )}
       </div>
       <svg
         className="week-trend-chart"
