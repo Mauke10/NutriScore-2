@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "./Modal";
 import ColourWheel from "./ColourWheel";
 import { DEFAULT_COLOR } from "./utils";
 import { DAY_THEMES, NIGHT_THEMES } from "../../lib/theme";
+import { APP_ICONS, currentAppIcon, iconPath, setAppIcon } from "../../lib/appIcons";
 
 
 const SWATCHES = [
@@ -117,6 +118,8 @@ export default function ColourPanel({ personId, myColor, refreshAccentColor, the
           onPick={(key) => onThemeChange({ ...theme, night: key, mode: theme.mode === "day" ? "night" : theme.mode })}
         />
       </div>
+
+      <AppIconPicker />
     </Modal>
   );
 }
@@ -141,5 +144,45 @@ function SchemeRow({ title, schemes, selected, onPick }) {
         ))}
       </div>
     </>
+  );
+}
+
+function AppIconPicker() {
+  // Read from the cookie after mount — the server render doesn't know it here.
+  const [icon, setIcon] = useState(null);
+  const [changed, setChanged] = useState(false);
+  useEffect(() => setIcon(currentAppIcon()), []);
+
+  function pick(key) {
+    setAppIcon(key);
+    setIcon(key);
+    setChanged(true);
+  }
+
+  return (
+    <div className="app-icon-section">
+      <h4 className="panel-heading">App icon</h4>
+      <p className="panel-desc">Just for this device.</p>
+      <div className="app-icon-row" role="radiogroup" aria-label="App icon colour">
+        {APP_ICONS.map((ic) => (
+          <button
+            key={ic.key}
+            type="button"
+            role="radio"
+            aria-checked={icon === ic.key}
+            className={icon === ic.key ? "app-icon-btn selected" : "app-icon-btn"}
+            onClick={() => pick(ic.key)}
+          >
+            <img src={iconPath(ic.key, 180)} alt="" width="52" height="52" />
+            <span>{ic.name}</span>
+          </button>
+        ))}
+      </div>
+      {changed && (
+        <p className="panel-desc app-icon-note">
+          iPhone: remove Nutriscore from the home screen and add it again from Safari (Share → Add to Home Screen) to see the new icon. Android updates it by itself within a day.
+        </p>
+      )}
+    </div>
   );
 }

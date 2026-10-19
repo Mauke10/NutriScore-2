@@ -3,6 +3,8 @@ import { THEME_BG, NIGHT_THEME_KEYS, THEME_KEY } from "../lib/theme";
 import VersionWatcher from "./VersionWatcher";
 import ServiceWorkerRegister from "./ServiceWorkerRegister";
 import OfflineBanner from "./OfflineBanner";
+import { cookies } from "next/headers";
+import { ICON_COOKIE, iconKey, iconPath } from "../lib/appIcons";
 
 export const viewport = {
   width: "device-width",
@@ -78,6 +80,10 @@ const THEME_COLOR_SNIPPET = `
 `;
 
 export default function RootLayout({ children }) {
+  // The app icon colour is a per-device choice (Colour panel), kept in a
+  // cookie so these links are right in the very first HTML — iPhone reads
+  // apple-touch-icon only when you "Add to Home Screen".
+  const icon = iconKey(cookies().get(ICON_COOKIE)?.value);
   return (
     <html lang="en">
       <head>
@@ -90,6 +96,9 @@ export default function RootLayout({ children }) {
             above creates the one and only instance, so there's never a second,
             stale tag competing with it. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_COLOR_SNIPPET }} />
+        <link rel="icon" type="image/png" sizes="32x32" href={iconPath(icon, 32)} />
+        <link rel="apple-touch-icon" sizes="180x180" href={iconPath(icon, 180)} />
+        <link rel="manifest" href={"/api/manifest?icon=" + icon} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="stylesheet"
