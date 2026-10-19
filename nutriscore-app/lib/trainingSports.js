@@ -67,6 +67,50 @@ function firstSport(text) {
   return best;
 }
 
+// How hard a logged workout was. Run and bike use the five training zones,
+// swim a 1–5 RPE, everything else four plain words. The key is what
+// training_sessions.effort stores — never rename one.
+const ZONES = [
+  { key: "z1", short: "Z1", label: "Recovery" },
+  { key: "z2", short: "Z2", label: "Base" },
+  { key: "z3", short: "Z3", label: "Tempo" },
+  { key: "z4", short: "Z4", label: "Threshold" },
+  { key: "z5", short: "Z5", label: "VO2 max" }
+];
+const RPE = [
+  { key: "rpe1", short: "1", label: "Very easy" },
+  { key: "rpe2", short: "2", label: "Easy" },
+  { key: "rpe3", short: "3", label: "Steady" },
+  { key: "rpe4", short: "4", label: "Hard" },
+  { key: "rpe5", short: "5", label: "All out" }
+];
+const LEVELS = [
+  { key: "light", short: "Light", label: "" },
+  { key: "moderate", short: "Moderate", label: "" },
+  { key: "hard", short: "Hard", label: "" },
+  { key: "max", short: "Max", label: "" }
+];
+export function effortsFor(sport) {
+  if (sport === "run" || sport === "bike") return { title: "Zone", options: ZONES };
+  if (sport === "swim") return { title: "Effort (RPE)", options: RPE };
+  return { title: "Effort", options: LEVELS };
+}
+// The key if it belongs to this sport's scale, else null.
+export function effortFor(sport, key) {
+  return effortsFor(sport).options.some((o) => o.key === key) ? key : null;
+}
+// "Z2", "RPE 3", "Hard" — for workout lists.
+export function effortLabel(sport, key) {
+  const o = effortsFor(sport).options.find((x) => x.key === key);
+  if (!o) return null;
+  return sport === "swim" ? "RPE " + o.short : o.short;
+}
+// A zone written in a plan ("Z2 jooks 10 km") → "z2".
+export function zoneIn(text) {
+  const m = /\bz([1-5])\b/i.exec(text || "");
+  return m ? "z" + m[1] : null;
+}
+
 export function sportOf(text) {
   if (BRICK.test(text || "")) return "brick";
   if (REST.test(text || "")) return "rest";
