@@ -18,7 +18,7 @@ Both people log into the same app and see each other's data (it's a shared house
 - **Supabase (Postgres)** as the only datastore, accessed exclusively through the service-role key server-side (`lib/supabase.js`). No RLS policies are defined for the anon key — RLS is enabled on every table as a safety net, but **all access goes through Next.js API routes**, never direct client-to-Supabase calls.
 - **Plain CSS**, no Tailwind, no CSS-in-JS. Everything lives in `app/globals.css`, which has grown into the project's whole design system (CSS custom properties for theming, motion tokens, component classes). Read it before adding UI — there is very likely already a class/token for what you need.
 - **lucide-react** for icons.
-- No test suite, no CI config, no ORM/migration tool — see "Database" below for how schema changes actually get applied.
+- No test suite, no CI config, no ORM/migration tool — see "Database" below for how schema changes actually get applied. Verification is the **`nutriscore-verify` project skill** (`.claude/skills/nutriscore-verify/`): a clean build served locally, scripted headless-Chromium runs against mocked `/api/*` with a test login (phone + desktop, light + night), a hydration check, and an in-memory Postgres (PGlite) check that a migration is re-runnable and matches `schema.sql`. Use it after every change.
 
 ## Environment variables
 
@@ -146,4 +146,5 @@ Now that the project is being worked on with real git access, this entire manual
 
 - The user (Martin) prefers direct, concrete answers over hedged explanations, and communicates casually (mixes English/Estonian). Say what's actually true about the code rather than softening it.
 - Verification discipline that proved useful: after any non-trivial change, run `rm -rf .next && npm run build` (clean rebuild) before calling something done — this project has `node_modules` get wiped by environment resets often enough that `npm install` first is sometimes necessary too.
+- For UI work, the **`frontend-skill` project skill** (`.claude/skills/frontend-skill/`, from letta-ai/skills, Apache-2.0) is the design lens: calm hierarchy, one accent, cards only when the card is the interaction, utility copy over marketing copy. The app predates it and is card-heavy with per-sport colours — use it to tighten screens you touch, not as a reason to rebuild unasked.
 - Before adding a feature, check whether `globals.css` already has a token/class for it — it's intentionally been built up as a shared system (theme tokens, motion tokens, status colors, per-person series colors, card/modal/log-card component classes) rather than one-off styles per component.
