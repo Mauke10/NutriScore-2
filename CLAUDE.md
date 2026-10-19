@@ -46,6 +46,8 @@ Session: a signed cookie (`nutriscore_session`), HMAC-SHA256 over `personId.issu
 
 **Explicit product decision — do not add without being asked again:** no PIN brute-force/lockout protection. The user considered this and declined it ("The pin thing is no problem right now as it is only to ppl"). Don't add rate-limiting or lockout to the login route as a "security improvement" unasked.
 
+**Migration 014 applied:** `supabase/migration_014_training_effort.sql` (adds nullable `training_sessions.effort`) was applied to the live project on 2026-10-19, before the effort marker in the Training log sheet shipped.
+
 **Migration 013 applied:** `supabase/migration_013_strava_activities.sql` (the `strava_activities` table + `training_sessions.feel`) was applied to the live project on 2026-10-15, before the new Training tab shipped. The first Strava sync after that backfills the last 4 months.
 
 **Migration 012 applied:** `supabase/migration_012_training_plan_items.sql` (the `training_plan_items` table) was applied to the live project on 2026-10-15, before the week-view calendar shipped; all 4 old `training_plan` rows were copied across. The old `training_plan` table is still there, unused.
@@ -60,7 +62,7 @@ Session: a signed cookie (`nutriscore_session`), HMAC-SHA256 over `personId.issu
 
 ## Database
 
-`supabase/schema.sql` is the full current schema (fresh-install source of truth). Numbered migration files (`migration_002` through `migration_013`) are additive deltas applied by hand — **there is no migration runner**. Each one is written to be safe to re-run (`if not exists` everywhere). When you need a schema change: write a new `migration_00N_description.sql`, and also update `schema.sql` so a fresh install matches. The user runs these manually in the Supabase SQL Editor — there's no automated pipeline, so after writing a migration, tell them explicitly that they need to go run it.
+`supabase/schema.sql` is the full current schema (fresh-install source of truth). Numbered migration files (`migration_002` through `migration_014`) are additive deltas applied by hand — **there is no migration runner**. Each one is written to be safe to re-run (`if not exists` everywhere). When you need a schema change: write a new `migration_00N_description.sql`, and also update `schema.sql` so a fresh install matches. The user runs these manually in the Supabase SQL Editor — there's no automated pipeline, so after writing a migration, tell them explicitly that they need to go run it.
 
 Tables, in brief:
 - `people` — exactly two rows (`martin`, `laura`), `pin_hash` nullable (see Auth).
