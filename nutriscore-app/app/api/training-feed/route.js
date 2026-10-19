@@ -93,7 +93,8 @@ function fromStrava(a) {
     speedKmh: a.avg_speed_kmh != null ? Number(a.avg_speed_kmh) : null,
     avgHr: a.avg_hr != null ? Math.round(Number(a.avg_hr)) : null,
     elevationM: a.elevation_m != null ? Math.round(Number(a.elevation_m)) : null,
-    feel: null
+    feel: null,
+    effort: null
   };
 }
 
@@ -111,6 +112,7 @@ function fromManual(s) {
     speedKmh: null,
     avgHr: null,
     elevationM: null,
-    feel: s.feel ?? null
+    feel: s.feel ?? null,
+    effort: s.effort ?? null
   };
 }

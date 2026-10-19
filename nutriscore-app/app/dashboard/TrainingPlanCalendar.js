@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import Modal from "./Modal";
 import { PEOPLE, localDateStr, mondayOf, otherOf, shiftWeek } from "./utils";
-import { AMOUNTS, SPORTS, SPORT_KEYS, distancesOf, sessionTypesFor, sportOf } from "../../lib/trainingSports";
+import { PLAN_KM, PLAN_MIN, SPORTS, SPORT_KEYS, distancesOf, formatPlanTime, planFieldsFor, planText, sessionTypesFor, sportOf, timeIn } from "../../lib/trainingSports";
 
 // The Calendar tab: one week at a time, a card per day with both people's
 // planned sessions (any number each). Tap "+ Plan" or one of your own
@@ -286,6 +286,10 @@ function PlanSheet({ me, date, item, partnerPlans, today, onClose, onSaved }) {
   const partner = otherOf(me);
   const [text, setText] = useState(item?.activity || "");
   const [sport, setSport] = useState(item ? sportOf(item.activity) : null);
+  // What the dropdowns hold, read back from an existing plan's text.
+  const [km, setKm] = useState(() => (item ? distancesOf(item.activity) : {}));
+  const [min, setMin] = useState(() => (item ? timeIn(item.activity) : null));
+  const fields = planFieldsFor(sport);
   const [alsoPartner, setAlsoPartner] = useState(false);
   const [done, setDone] = useState(!!item?.done);
   const [busy, setBusy] = useState(false);
@@ -294,12 +298,18 @@ function PlanSheet({ me, date, item, partnerPlans, today, onClose, onSaved }) {
 
   function pickSport(k) {
     setSport(k);
-    setText(SPORTS[k].label + (k === "rest" ? " day" : ""));
+    if (k === "rest") return setText("Rest day");
+    // Keep the distance only for the same sport; a bike leg carries into a brick.
+    const next = {};
+    for (const leg of planFieldsFor(k).legs) if (km[leg]) next[leg] = km[leg];
+    setKm(next);
+    setText(planText(k, next, min));
   }
 
-  function pickAmount(a) {
-    const base = SPORTS[sport].label;
-    setText(sport === "brick" ? base + ": " + a : base + " " + a);
+  function pickAmount(nextKm, nextMin) {
+    setKm(nextKm);
+    setMin(nextMin);
+    setText(planText(sport, nextKm, nextMin));
   }
 
   async function send(method, body, url = "/api/training-plan") {
@@ -342,17 +352,26 @@ function PlanSheet({ me, date, item, partnerPlans, today, onClose, onSaved }) {
           ))}
         </div>
 
-        {sport && AMOUNTS[sport]?.length > 0 && (
-          <>
-            <div className="plan-sheet-label">How much</div>
-            <div className="plan-chips">
-              {AMOUNTS[sport].map((a) => (
-                <button type="button" key={a} className="plan-chip" onClick={() => pickAmount(a)}>
-                  {a}
-                </button>
-              ))}
-            </div>
-          </>
+        {(fields.legs.length > 0 || fields.time) && (
+          <div className="plan-amounts">
+            {fields.legs.map((leg) => (
+              <label key={leg}>
+                <span className="plan-sheet-label">{sport === "brick" ? SPORTS[leg].label + " km" : "Distance"}</span>
+                <AmountSelect
+                  value={km[leg] || ""}
+                  options={PLAN_KM[leg]}
+                  format={(v) => v + " km"}
+                  onChange={(v) => pickAmount({ ...km, [leg]: v }, min)}
+                />
+              </label>
+            ))}
+            {fields.time && (
+              <label>
+                <span className="plan-sheet-label">Time</span>
+                <AmountSelect value={min || ""} options={PLAN_MIN} format={formatPlanTime} onChange={(v) => pickAmount(km, v)} />
+              </label>
+            )}
+          </div>
         )}
 
         <label className="plan-sheet-label" htmlFor="plan-text">
@@ -367,6 +386,8 @@ function PlanSheet({ me, date, item, partnerPlans, today, onClose, onSaved }) {
           onChange={(e) => {
             setText(e.target.value);
             setSport(e.target.value.trim() ? sportOf(e.target.value) : null);
+            setKm(distancesOf(e.target.value));
+            setMin(timeIn(e.target.value));
           }}
         />
 
@@ -402,5 +423,21 @@ function PlanSheet({ me, date, item, partnerPlans, today, onClose, onSaved }) {
         </div>
       </form>
     </Modal>
+  );
+}
+
+// A distance/time dropdown. A value typed by hand that isn't one of the steps
+// still shows, slotted in where it belongs.
+function AmountSelect({ value, options, format, onChange }) {
+  const list = value && !options.includes(Number(value)) ? [...options, Number(value)].sort((a, b) => a - b) : options;
+  return (
+    <select className="plan-select" value={value} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}>
+      <option value="">–</option>
+      {list.map((v) => (
+        <option key={v} value={v}>
+          {format(v)}
+        </option>
+      ))}
+    </select>
   );
 }

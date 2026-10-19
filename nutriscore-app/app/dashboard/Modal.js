@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import useScrollLock from "./useScrollLock";
 
 // Matches the .modal / .modal-overlay transition duration in globals.css —
 // change one, change the other.
@@ -10,6 +11,7 @@ const CLOSE_MS = 180;
 export default function Modal({ title, onClose, children, wide }) {
   const [closing, setClosing] = useState(false);
   const timerRef = useRef(null);
+  useScrollLock();
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
 

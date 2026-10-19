@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "../../../lib/supabase";
 import { currentPerson } from "../../../lib/auth";
+import { effortFor } from "../../../lib/trainingSports";
 
 const TYPES = ["swim", "bike", "run", "strength", "mobility", "other"];
 
@@ -78,7 +79,8 @@ export async function POST(request) {
     distance_km: numOrNull(body.distanceKm),
     duration_min: numOrNull(body.durationMin),
     notes: (body.notes || "").toString(),
-    feel: feelOrNull(body.feel)
+    feel: feelOrNull(body.feel),
+    effort: effortFor(activityType, body.effort)
   };
 
   const supabase = supabaseServer();
@@ -122,6 +124,8 @@ export async function PATCH(request) {
   if (body.durationMin !== undefined) row.duration_min = numOrNull(body.durationMin);
   if (body.notes !== undefined) row.notes = (body.notes || "").toString();
   if (body.feel !== undefined) row.feel = feelOrNull(body.feel);
+  // Checked against the sport's scale, so it needs the sport alongside it.
+  if (body.effort !== undefined) row.effort = effortFor(row.activity_type || body.activityType, body.effort);
 
   if (Object.keys(row).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });

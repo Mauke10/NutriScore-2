@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import Modal from "./Modal";
 import { localDateStr, mondayOf, shiftWeek } from "./utils";
 import { agoLabel, lastStravaSync, syncStrava } from "./strava";
-import { SPORTS, distancesOf, estimateMinutes, sessionTypesFor, sportColor, sportOf, workoutMinutes } from "../../lib/trainingSports";
+import { SPORTS, distancesOf, effortFor, effortLabel, effortsFor, estimateMinutes, sessionTypesFor, sportColor, sportOf, workoutMinutes, zoneIn } from "../../lib/trainingSports";
 
 // The Training tab: one layout seen at three zooms. Week (day bars, done vs
 // planned per sport, the week's workouts), Month (goal rings, progress with an
@@ -650,7 +650,7 @@ function WorkoutList({ title, workouts, plans, ready, onOpen, isMe, limit, empty
       {shown.map((w) => {
         const pace = paceOf(w);
         const feel = FEELS.find((f) => f.v === w.feel);
-        const meta = [weekdayOf(w.date) + " " + Number(w.date.slice(8)), pace, w.avgHr ? "♥ " + w.avgHr : null, feel ? "felt " + feel.e : null].filter(Boolean).join(" · ");
+        const meta = [weekdayOf(w.date) + " " + Number(w.date.slice(8)), effortLabel(w.sport, w.effort), pace, w.avgHr ? "♥ " + w.avgHr : null, feel ? "felt " + feel.e : null].filter(Boolean).join(" · ");
         const inner = (
           <>
             <span className="tr-act-icon" style={{ "--c": sportColor(w.sport) }} aria-hidden="true">
@@ -704,12 +704,17 @@ function LogSheet({ today, workout, todaysPlans, onClose, onSaved }) {
     durationMin: workout?.minutes != null ? String(workout.minutes) : "",
     distanceKm: workout?.distanceKm != null ? String(workout.distanceKm) : "",
     feel: workout?.feel || null,
+    effort: workout?.effort || null,
     notes: workout?.name || ""
   }));
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  // Each sport has its own effort scale, so switching sport keeps the effort
+  // only if it still fits (Z2 run → bike stays Z2).
+  const setSport = (k) => setForm((f) => ({ ...f, activityType: k, effort: effortFor(k, f.effort) }));
+  const scale = effortsFor(form.activityType);
 
   function usePlan(p) {
     let sport = sportOf(p.activity);
@@ -717,7 +722,7 @@ function LogSheet({ today, workout, todaysPlans, onClose, onSaved }) {
     if (!LOG_SPORTS.includes(sport)) sport = "other";
     const dist = distancesOf(p.activity);
     const total = ENDURANCE.includes(sport) ? dist[sport] : 0;
-    setForm((f) => ({ ...f, activityType: sport, distanceKm: total ? String(total) : f.distanceKm, notes: p.activity }));
+    setForm((f) => ({ ...f, activityType: sport, distanceKm: total ? String(total) : f.distanceKm, effort: effortFor(sport, zoneIn(p.activity)) || effortFor(sport, f.effort), notes: p.activity }));
   }
 
   async function send(method, body, url = "/api/training-sessions") {
@@ -758,7 +763,7 @@ function LogSheet({ today, workout, todaysPlans, onClose, onSaved }) {
         <div className="tr-sheet-label">What</div>
         <div className="plan-chips">
           {LOG_SPORTS.map((k) => (
-            <button type="button" key={k} className={"plan-chip" + (form.activityType === k ? " is-on" : "")} onClick={() => set("activityType", k)}>
+            <button type="button" key={k} className={"plan-chip" + (form.activityType === k ? " is-on" : "")} onClick={() => setSport(k)}>
               {SPORTS[k].emoji} {SPORTS[k].label}
             </button>
           ))}
@@ -783,6 +788,23 @@ function LogSheet({ today, workout, todaysPlans, onClose, onSaved }) {
             <span className="tr-sheet-label">Date</span>
             <input type="date" value={form.sessionDate} onChange={(e) => set("sessionDate", e.target.value)} />
           </label>
+        </div>
+
+        <div className="tr-sheet-label">{scale.title}</div>
+        <div className="tr-effort" role="radiogroup" aria-label={scale.title} style={{ "--n": scale.options.length }}>
+          {scale.options.map((o) => (
+            <button
+              type="button"
+              key={o.key}
+              role="radio"
+              aria-checked={form.effort === o.key}
+              className={form.effort === o.key ? "is-on" : ""}
+              onClick={() => set("effort", form.effort === o.key ? null : o.key)}
+            >
+              <b>{o.short}</b>
+              {o.label && <small>{o.label}</small>}
+            </button>
+          ))}
         </div>
 
         <div className="tr-sheet-label">How did it feel?</div>

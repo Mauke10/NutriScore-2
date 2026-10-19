@@ -22,6 +22,7 @@ import {
   Download,
   LogOut
 } from "lucide-react";
+import useScrollLock from "./useScrollLock";
 import { todayStr, dayMonthLabel } from "./utils";
 import { agoLabel, lastStravaSync, syncStrava } from "./strava";
 
@@ -79,6 +80,7 @@ export default function SideDrawer({
   }
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
+  useScrollLock(phase !== "closed");
 
   useEffect(() => {
     if (phase !== "open") return;

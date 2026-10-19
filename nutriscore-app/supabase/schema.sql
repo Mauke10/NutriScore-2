@@ -198,6 +198,7 @@ create table if not exists training_sessions (
   duration_min numeric,
   notes text,
   feel smallint check (feel between 1 and 4), -- "how did it feel", 1 tough … 4 great (migration 013)
+  effort text,                               -- z1…z5 (run/bike), rpe1…rpe5 (swim), light|moderate|hard|max (migration 014)
   created_at timestamptz not null default now()
 );
 create index if not exists training_sessions_person_date_idx on training_sessions (person_id, session_date);
